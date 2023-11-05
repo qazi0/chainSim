@@ -16,6 +16,8 @@ public:
 
     ChainSimBuilder &starting_inventory(std::size_t startingInventory);
 
+    ChainSimBuilder& logging_level(unsigned loggingLevel);
+
     ChainSim build();
 
 private:

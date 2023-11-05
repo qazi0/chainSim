@@ -31,3 +31,8 @@ ChainSim ChainSimBuilder::build() {
 
     return m_root;
 }
+
+ChainSimBuilder &ChainSimBuilder::logging_level(unsigned loggingLevel) {
+    m_root.m_logging_level = loggingLevel;
+    return *this;
+}
