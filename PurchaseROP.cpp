@@ -8,7 +8,7 @@ PurchaseROP::PurchaseROP(unsigned leadTime, double avgDemand) :
         m_lead_time{leadTime}, m_average_daily_demand{avgDemand} {
 
     m_safety_stock = std::ceil(m_average_daily_demand) * leadTime;
-    m_reorder_point = static_cast<long long>(m_average_daily_demand * leadTime + m_safety_stock);
+    m_reorder_point = static_cast<long>(m_average_daily_demand * leadTime + m_safety_stock);
 }
 
 long PurchaseROP::get_purchase(const std::unordered_map<std::string, std::vector<long>> &pastRecords,
