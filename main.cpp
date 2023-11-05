@@ -1,17 +1,25 @@
-#include <iostream>
-#include "ChainSim.h"
+#include "ChainSimBuilder.h"
 #include "PurchaseROP.h"
 
 int main() {
 
-    unsigned simulation_length = 365;
-    unsigned lead_time = 8;
+    unsigned simulationLength = 365;
+    unsigned leadTime = 8;
     unsigned demand = 50;
-    unsigned starting_inventory = 400;
+    unsigned startingInventory = 400;
 
-    ChainSim chainSimulator{simulation_length, lead_time, demand, starting_inventory};
+    ChainSim chainSimulator = (
+            ChainSimBuilder("ChainSim")
+                    .simulation_length(simulationLength)
+                    .lead_time(leadTime)
+                    .average_demand(demand)
+                    .starting_inventory(startingInventory)
+                    .build()
+    );
 
-    PurchaseROP rop(lead_time, demand);
+    chainSimulator.initialize_simulation();
+
+    PurchaseROP rop(leadTime, demand);
     chainSimulator.simulate(rop);
 
     auto simulation_record = chainSimulator.get_simulation_records();
