@@ -1,6 +1,24 @@
 # ChainSim
 A supply chain operations simulator, in C++.
 
+### Build & Run
+Generate Makefile with CMake as
+```shell
+mkdir build
+cd build
+cmake ..
+```
+Now compile with make/ninja:
+```shell
+make
+# or 
+# ninja
+```
+Run with
+```shell
+./ChainSim
+```
+
 ### Simulation variables
 - Inventory
 - Demand
