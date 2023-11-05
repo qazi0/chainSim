@@ -2,7 +2,7 @@
 #ifndef CHAINSIM_CHAINSIM_H
 #define CHAINSIM_CHAINSIM_H
 
-
+#include <iostream>
 #include <vector>
 #include <string>
 #include <string_view>
@@ -10,6 +10,7 @@
 #include <algorithm>
 
 #include "PurchaseMethod.h"
+#include "ChainLogger.hpp"
 
 using namespace std;
 
@@ -24,6 +25,9 @@ class ChainSim {
     std::string m_simulation_name;
     vector<string> m_records_columns;
     unordered_map<string, vector<long>> m_records;
+
+    unsigned m_logging_level{0};
+    ChainLogger m_logger{};
 
     ChainSim();
 
