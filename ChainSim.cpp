@@ -26,7 +26,7 @@ void ChainSim::initialize_simulation() {
 }
 
 void ChainSim::simulate(const PurchaseMethod &purchase_method) {
-    m_logger.info("Starting simulation ...\n");
+    m_logger.info("Starting simulation {{", m_simulation_name, "}} ...\n");
 
     for (unsigned index = 1; index < m_simulation_length; ++index) {
         m_logger.info("Day# ", index);
