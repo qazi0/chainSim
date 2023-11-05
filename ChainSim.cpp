@@ -1,5 +1,6 @@
 
 #include "ChainSim.h"
+#include <iomanip>
 
 ChainSim::ChainSim() {
 
@@ -19,14 +20,27 @@ void ChainSim::initialize_simulation() {
 
     std::fill(m_records["demand_quantity"].begin(), m_records["demand_quantity"].end(), m_current_demand);
     m_records["inventory_quantity"][0] = m_starting_inventory;
+
+    m_logger = ChainLogger(m_logging_level);
+    m_logger.info("Successfully initialized simulation.");
 }
 
 void ChainSim::simulate(const PurchaseMethod &purchase_method) {
+    m_logger.info("Starting simulation ...\n");
 
     for (unsigned index = 1; index < m_simulation_length; ++index) {
+        m_logger.info("Day# ", index);
+
         auto current_inventory = m_records["inventory_quantity"][index - 1];
         auto current_demand = m_records["demand_quantity"][index];
         auto current_procurement = m_records["procurement_quantity"][index];
+
+        m_logger.info(std::setw(30), std::right,
+                      "Starting inventory: ", current_inventory,
+                      std::setw(25), std::left,
+                      "\tCurrent Demand: ", current_demand,
+                      std::setw(20), std::left,
+                      "\tIncoming: ", current_procurement);
 
         // Procurement is incorporated at the beginning of the day/time slice.
         current_inventory += current_procurement;
@@ -42,6 +56,13 @@ void ChainSim::simulate(const PurchaseMethod &purchase_method) {
             current_inventory = 0;
         }
 
+        m_logger.info(std::setw(30), std::right,
+                      "Sales: ", sales,
+                      std::setw(25), std::left,
+                      "\tLost Sales: ", lost_sales,
+                      std::setw(20), std::left,
+                      "\tEnding Inventory: ", current_inventory);
+
         m_records["inventory_quantity"][index] = current_inventory;
         m_records["sale_quantity"][index] = sales;
         m_records["lost_sale_quantity"][index] = lost_sales;
@@ -53,7 +74,12 @@ void ChainSim::simulate(const PurchaseMethod &purchase_method) {
 
             auto delivery_date = std::min(index + m_lead_time, m_simulation_length);
             m_records["procurement_quantity"][delivery_date] += purchase_quantity;
+
+            m_logger.info("Using Purchase policy: ", purchase_method.getName());
+            m_logger.warn("Purchasing {", purchase_quantity, "} units, will arrive on day {", delivery_date, "}.");
         }
+
+        m_logger.info("");
 
     }
 
