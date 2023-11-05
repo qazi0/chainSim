@@ -18,8 +18,9 @@ public:
 
     [[nodiscard]] long
     get_purchase(const std::unordered_map<std::string, std::vector<long>> &pastRecords,
-                 unsigned current_day) const;
+                 unsigned current_day) const final;
 
+    std::string getName() const override;
 };
 
 

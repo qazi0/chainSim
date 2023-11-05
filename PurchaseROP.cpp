@@ -12,11 +12,15 @@ PurchaseROP::PurchaseROP(unsigned leadTime, double avgDemand) :
 }
 
 long PurchaseROP::get_purchase(const std::unordered_map<std::string, std::vector<long>> &pastRecords,
-                                    unsigned current_day) const {
+                               unsigned current_day) const {
     auto current_inventory = pastRecords.at("inventory_quantity")[current_day];
     long reorder_quantity{0};
     if (current_inventory <= m_reorder_point)
         reorder_quantity = std::ceil(m_average_daily_demand * m_lead_time);
 
     return reorder_quantity;
+}
+
+std::string PurchaseROP::getName() const {
+    return "ROP/CR";
 }
