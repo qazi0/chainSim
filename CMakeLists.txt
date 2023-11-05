@@ -10,4 +10,5 @@ add_executable(chainSim main.cpp
         PurchaseROP.cpp
         PurchaseROP.h
         ChainSimBuilder.cpp
-        ChainSimBuilder.h)
+        ChainSimBuilder.h
+        ChainLogger.hpp)
