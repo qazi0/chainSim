@@ -9,8 +9,8 @@
 #include <unordered_map>
 #include <algorithm>
 
-#include "PurchaseMethod.h"
-#include "ChainLogger.hpp"
+#include "purchase_methods/PurchaseMethod.h"
+#include "utils/ChainLogger.hpp"
 
 using namespace std;
 

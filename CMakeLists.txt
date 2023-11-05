@@ -6,9 +6,9 @@ set(CMAKE_CXX_STANDARD 20)
 add_executable(chainSim main.cpp
         ChainSim.cpp
         ChainSim.h
-        PurchaseMethod.h
-        PurchaseROP.cpp
-        PurchaseROP.h
+        purchase_methods/PurchaseMethod.h
+        purchase_methods/PurchaseROP.cpp
+        purchase_methods/PurchaseROP.h
         ChainSimBuilder.cpp
         ChainSimBuilder.h
-        ChainLogger.hpp)
+        utils/ChainLogger.hpp)
