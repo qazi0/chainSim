@@ -1,16 +1,7 @@
-//
-// Created by blakberrisigma on 03/11/2023.
-//
 
 #include "ChainSim.h"
 
-ChainSim::ChainSim(unsigned simulationLength,
-                       unsigned leadTime,
-                       unsigned demand,
-                       unsigned startingInventory) :
-        m_simulation_length{simulationLength},
-        m_lead_time{leadTime},
-        m_current_demand{demand} {
+ChainSim::ChainSim() {
 
     m_records_columns = {
             "inventory_quantity",
@@ -20,20 +11,14 @@ ChainSim::ChainSim(unsigned simulationLength,
             "sale_quantity",
             "lost_sale_quantity"
     };
-
-    for (const auto &col: m_records_columns)
-        m_records[col] = vector<long>(m_simulation_length);
-
-    initialize_simulation(startingInventory);
 }
 
-void ChainSim::initialize_simulation(unsigned startingInventory) {
-
+void ChainSim::initialize_simulation() {
     for (const auto &col: m_records_columns)
         std::fill(m_records[col].begin(), m_records[col].end(), 0LL);
 
     std::fill(m_records["demand_quantity"].begin(), m_records["demand_quantity"].end(), m_current_demand);
-    m_records["inventory_quantity"][0] = startingInventory;
+    m_records["inventory_quantity"][0] = m_starting_inventory;
 }
 
 void ChainSim::simulate(const PurchaseMethod &purchase_method) {
