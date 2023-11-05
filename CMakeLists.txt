@@ -8,4 +8,6 @@ add_executable(chainSim main.cpp
         ChainSim.h
         PurchaseMethod.h
         PurchaseROP.cpp
-        PurchaseROP.h)
+        PurchaseROP.h
+        ChainSimBuilder.cpp
+        ChainSimBuilder.h)
