@@ -14,6 +14,7 @@ int main() {
                     .lead_time(leadTime)
                     .average_demand(demand)
                     .starting_inventory(startingInventory)
+                    .logging_level(1)
                     .build()
     );
 
