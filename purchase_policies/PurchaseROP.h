@@ -14,10 +14,10 @@ public:
     PurchaseROP(unsigned leadTime, double avgDemand);
 
     [[nodiscard]] long
-    get_purchase(const std::unordered_map<std::string, std::vector<long>> &pastRecords,
+    get_purchase(const simulation_records_t &pastRecords,
                  unsigned current_day) const final;
 
-    std::string name() const override;
+    [[nodiscard]] std::string name() const override;
 };
 
 

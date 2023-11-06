@@ -15,6 +15,18 @@
 using namespace std;
 
 class ChainSim {
+public:
+    using simulation_records_t = std::unordered_map<std::string, std::vector<long>>;
+
+    void initialize_simulation();
+
+    void simulate(const PurchasePolicy &purchasePolicy);
+
+    [[nodiscard]] simulation_records_t get_simulation_records() const;
+
+private:
+    ChainSim();
+
     friend class ChainSimBuilder;
 
     unsigned m_simulation_length{};
@@ -23,21 +35,11 @@ class ChainSim {
     double m_current_demand{};
 
     std::string m_simulation_name;
-    vector<string> m_records_columns;
-    unordered_map<string, vector<long>> m_records;
+    std::vector<string> m_records_columns;
+    simulation_records_t m_records;
 
     unsigned m_logging_level{0};
     ChainLogger m_logger{};
-
-    ChainSim();
-
-public:
-
-    void initialize_simulation();
-
-    void simulate(const PurchasePolicy &purchasePolicy);
-
-    [[nodiscard]] unordered_map<string, vector<long>> get_simulation_records() const;
 };
 
 

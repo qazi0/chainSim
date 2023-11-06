@@ -85,6 +85,6 @@ void ChainSim::simulate(const PurchasePolicy &purchasePolicy) {
 
 }
 
-unordered_map<string, vector<long>> ChainSim::get_simulation_records() const {
+ChainSim::simulation_records_t ChainSim::get_simulation_records() const {
     return m_records;
 }
