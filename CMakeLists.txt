@@ -12,7 +12,5 @@ add_executable(chainSim main.cpp
         ChainSimBuilder.cpp
         ChainSimBuilder.h
         utils/ChainLogger.hpp
-        purchase_policies/PurchaseTPOP.cpp
-        purchase_policies/PurchaseTPOP.h
-        purchase_policies/PurchaseEOQ.cpp
-        purchase_policies/PurchaseEOQ.h)
+        utils/CLI.hpp
+        third_party/argparse.hpp)
