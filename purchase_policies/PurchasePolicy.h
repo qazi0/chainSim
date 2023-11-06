@@ -16,7 +16,7 @@ public:
     [[nodiscard]] virtual long
     get_purchase(const std::unordered_map<std::string, std::vector<long>> &pastRecords, unsigned current_day) const = 0;
 
-    virtual std::string getName() const = 0;
+    virtual std::string name() const = 0;
 };
 
 

@@ -21,6 +21,6 @@ long PurchaseROP::get_purchase(const std::unordered_map<std::string, std::vector
     return reorder_quantity;
 }
 
-std::string PurchaseROP::getName() const {
+std::string PurchaseROP::name() const {
     return "ROP/CR";
 }
