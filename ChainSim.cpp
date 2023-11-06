@@ -2,7 +2,7 @@
 #include "ChainSim.h"
 #include <iomanip>
 
-ChainSim::ChainSim() {
+qz::ChainSim::ChainSim() {
 
     m_records_columns = {
             "inventory_quantity",
@@ -14,7 +14,7 @@ ChainSim::ChainSim() {
     };
 }
 
-void ChainSim::initialize_simulation() {
+void qz::ChainSim::initialize_simulation() {
     for (const auto &col: m_records_columns)
         std::fill(m_records[col].begin(), m_records[col].end(), 0LL);
 
@@ -25,10 +25,10 @@ void ChainSim::initialize_simulation() {
     m_logger.info("Successfully initialized simulation.");
 }
 
-void ChainSim::simulate(const PurchasePolicy &purchasePolicy) {
+void qz::ChainSim::simulate(const PurchasePolicy &purchasePolicy) {
     m_logger.info("Starting simulation {{", m_simulation_name, "}} ...\n");
 
-    for (unsigned index = 1; index < m_simulation_length; ++index) {
+    for (uint64_t index = 1; index < m_simulation_length; ++index) {
         m_logger.info("Day# ", index);
 
         auto current_inventory = m_records["inventory_quantity"][index - 1];
@@ -85,6 +85,6 @@ void ChainSim::simulate(const PurchasePolicy &purchasePolicy) {
 
 }
 
-ChainSim::simulation_records_t ChainSim::get_simulation_records() const {
+qz::ChainSim::simulation_records_t qz::ChainSim::get_simulation_records() const {
     return m_records;
 }
