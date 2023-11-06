@@ -42,6 +42,15 @@ public:
 
         std::cout << "\n";
     }
+
+    template<typename... Args>
+    static void debug(const Args &... args) {
+
+        std::cout << "[DEBUG > ] ";
+        ((std::cout << args), ...);
+
+        std::cout << "\n";
+    }
 };
 
 #endif //CHAINSIM_CHAINLOGGER_HPP
