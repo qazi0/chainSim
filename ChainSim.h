@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <algorithm>
 
-#include "purchase_methods/PurchaseMethod.h"
+#include "purchase_policies/PurchasePolicy.h"
 #include "utils/ChainLogger.hpp"
 
 using namespace std;
@@ -35,7 +35,7 @@ public:
 
     void initialize_simulation();
 
-    void simulate(const PurchaseMethod &purchaseMethod);
+    void simulate(const PurchasePolicy &purchasePolicy);
 
     [[nodiscard]] unordered_map<string, vector<long>> get_simulation_records() const;
 };

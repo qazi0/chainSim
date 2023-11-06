@@ -1,13 +1,10 @@
-//
-// Created by blakberrisigma on 03/11/2023.
-//
 
 #ifndef CHAINSIM_PURCHASEROP_H
 #define CHAINSIM_PURCHASEROP_H
 
-#include "PurchaseMethod.h"
+#include "PurchasePolicy.h"
 
-class PurchaseROP : public PurchaseMethod {
+class PurchaseROP : public PurchasePolicy {
     unsigned m_lead_time;
     double m_average_daily_demand;
     double m_safety_stock;

@@ -25,7 +25,7 @@ void ChainSim::initialize_simulation() {
     m_logger.info("Successfully initialized simulation.");
 }
 
-void ChainSim::simulate(const PurchaseMethod &purchase_method) {
+void ChainSim::simulate(const PurchasePolicy &purchasePolicy) {
     m_logger.info("Starting simulation {{", m_simulation_name, "}} ...\n");
 
     for (unsigned index = 1; index < m_simulation_length; ++index) {
@@ -67,7 +67,7 @@ void ChainSim::simulate(const PurchaseMethod &purchase_method) {
         m_records["sale_quantity"][index] = sales;
         m_records["lost_sale_quantity"][index] = lost_sales;
 
-        auto purchase_quantity = purchase_method.get_purchase(m_records, index);
+        auto purchase_quantity = purchasePolicy.get_purchase(m_records, index);
 
         if (purchase_quantity > 0) {
             m_records["purchase_quantity"][index] = purchase_quantity;
@@ -75,7 +75,7 @@ void ChainSim::simulate(const PurchaseMethod &purchase_method) {
             auto delivery_date = std::min(index + m_lead_time, m_simulation_length);
             m_records["procurement_quantity"][delivery_date] += purchase_quantity;
 
-            m_logger.info("Using Purchase policy: ", purchase_method.getName());
+            m_logger.info("Using Purchase policy: ", purchasePolicy.name());
             m_logger.warn("Purchasing {", purchase_quantity, "} units, will arrive on day {", delivery_date, "}.");
         }
 

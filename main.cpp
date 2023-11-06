@@ -1,5 +1,5 @@
 #include "ChainSimBuilder.h"
-#include "purchase_methods/PurchaseROP.h"
+#include "purchase_policies/PurchaseROP.h"
 
 int main() {
 
