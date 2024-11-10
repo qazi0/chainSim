@@ -178,11 +178,3 @@ Day,inventory_quantity,demand_quantity,procurement_quantity,purchase_quantity,sa
 3. Commit your changes
 4. Push to the branch
 5. Create a Pull Request
-
-## License
-
-[License information should be added here]
-
-## Authors
-
-[Author information should be added here]
