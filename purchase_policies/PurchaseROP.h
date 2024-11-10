@@ -4,7 +4,12 @@
 
 #include "PurchasePolicy.h"
 
-class PurchaseROP : public PurchasePolicy {
+/* Re-Order Point (ROP)
+ * Ref: https://manufacturing-software-blog.mrpeasy.com/what-is-reorder-point-and-reorder-point-formula/
+ *
+ * */
+class PurchaseROP : public PurchasePolicy
+{
     unsigned m_lead_time;
     double m_average_daily_demand;
     double m_safety_stock;
@@ -17,8 +22,11 @@ public:
     get_purchase(const simulation_records_t &pastRecords,
                  unsigned current_day) const final;
 
-    [[nodiscard]] std::string name() const override;
+    [[nodiscard]] std::string name() const final;
+
+    [[nodiscard]] std::string get_calculation_details(
+        const simulation_records_t &pastRecords,
+        unsigned current_day) const override;
 };
 
-
-#endif //CHAINSIM_PURCHASEROP_H
+#endif // CHAINSIM_PURCHASEROP_H
