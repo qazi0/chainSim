@@ -4,14 +4,16 @@
 
 #include <iostream>
 
-class ChainLogger {
+class ChainLogger
+{
     unsigned m_logging_level{};
 
 public:
     explicit ChainLogger(unsigned loggingLevel = 1) : m_logging_level{loggingLevel} {}
 
-    template<typename... Args>
-    void info(const Args &... args) const {
+    template <typename... Args>
+    void info(const Args &...args) const
+    {
         if (m_logging_level < 1)
             return;
 
@@ -21,8 +23,9 @@ public:
         std::cout << "\n";
     }
 
-    template<typename... Args>
-    void warn(const Args &... args) const {
+    template <typename... Args>
+    void warn(const Args &...args) const
+    {
         if (m_logging_level < 1)
             return;
 
@@ -32,8 +35,9 @@ public:
         std::cout << "\n";
     }
 
-    template<typename... Args>
-    void error(const Args &... args) const {
+    template <typename... Args>
+    void error(const Args &...args) const
+    {
         if (m_logging_level < 1)
             return;
 
@@ -43,14 +47,17 @@ public:
         std::cout << "\n";
     }
 
-    template<typename... Args>
-    static void debug(const Args &... args) {
+    template <typename... Args>
+    void debug(const Args &...args)
+    {
+        if (m_logging_level < 1)
+            return;
 
-        std::cout << "[DEBUG > ] ";
+        std::cout << "[DEBG > ] ";
         ((std::cout << args), ...);
 
         std::cout << "\n";
     }
 };
 
-#endif //CHAINSIM_CHAINLOGGER_HPP
+#endif // CHAINSIM_CHAINLOGGER_HPP
