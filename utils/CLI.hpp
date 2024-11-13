@@ -14,6 +14,11 @@ namespace qz
         parser.addHelpOption();
         parser.addVersionOption();
 
+        // Server mode option
+        QCommandLineOption serverOption(
+            QStringList() << "s" << "server",
+            "Run in server mode listening on port 47761");
+
         // Add options
         QCommandLineOption logLevelOption(
             "log_level",
@@ -98,6 +103,7 @@ namespace qz
             "Simulate without random sampling, use fixed leadtime/demand/etc.");
 
         // Add all options to parser
+        parser.addOption(serverOption);
         parser.addOption(logLevelOption);
         parser.addOption(simLengthOption);
         parser.addOption(avgDemandOption);
@@ -116,11 +122,14 @@ namespace qz
         // Process the command line arguments
         parser.process(app);
 
-        // Validate policy choice
-        QString policy = parser.value(policyOption);
-        if (policy != "ROP" && policy != "TPOP" && policy != "EOQ")
+        // Only validate policy choice if not in server mode
+        if (!parser.isSet(serverOption))
         {
-            parser.showHelp(1);
+            QString policy = parser.value(policyOption);
+            if (policy != "ROP" && policy != "TPOP" && policy != "EOQ")
+            {
+                parser.showHelp(1);
+            }
         }
     }
 }
