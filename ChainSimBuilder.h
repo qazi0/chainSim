@@ -1,30 +1,41 @@
-
 #ifndef CHAINSIM_CHAINSIMBUILDER_H
 #define CHAINSIM_CHAINSIMBUILDER_H
 
+#include <QObject>
+#include <QString>
+#include <memory>
 #include "ChainSim.h"
 
-namespace qz {
-class ChainSimBuilder {
-public:
-    explicit ChainSimBuilder(std::string_view simulationName);
+namespace qz
+{
+    class ChainSimBuilder : public QObject
+    {
+        Q_OBJECT
 
-    ChainSimBuilder &simulation_length(uint64_t simulationLength);
+    public:
+        explicit ChainSimBuilder(QObject *parent = nullptr);
 
-    ChainSimBuilder &lead_time(uint64_t leadTime);
+        // Configuration methods
+        ChainSimBuilder &setSimulationName(const QString &simulationName);
+        ChainSimBuilder &setSimulationLength(quint64 simulationLength);
+        ChainSimBuilder &setLeadTime(quint64 leadTime);
+        ChainSimBuilder &setAverageDemand(double averageDemand);
+        ChainSimBuilder &setStartingInventory(quint64 startingInventory);
+        ChainSimBuilder &setLoggingLevel(quint32 loggingLevel);
 
-    ChainSimBuilder &average_demand(double averageDemand);
+        // Create and return a new ChainSim instance
+        std::unique_ptr<ChainSim> create();
 
-    ChainSimBuilder &starting_inventory(uint64_t startingInventory);
+    private:
+        void validateConfiguration() const;
 
-    ChainSimBuilder &logging_level(unsigned loggingLevel);
-
-    qz::ChainSim build();
-
-private:
-    ChainSim m_root;
-
-};
+        QString m_simulation_name;
+        quint64 m_simulation_length{30};
+        quint64 m_lead_time{5};
+        double m_current_demand{50.0};
+        quint64 m_starting_inventory{0};
+        quint32 m_logging_level{0};
+    };
 }
 
-#endif //CHAINSIM_CHAINSIMBUILDER_H
+#endif // CHAINSIM_CHAINSIMBUILDER_H
