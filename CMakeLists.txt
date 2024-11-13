@@ -10,12 +10,17 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS 
+    Core
+    Network
+    HttpServer
+)
 
 add_executable(ChainSimQServe
   main.cpp
   ChainSimBuilder.h ChainSimBuilder.cpp
   ChainSim.h ChainSim.cpp
+  ChainSimServer.h ChainSimServer.cpp
   purchase_policies/PurchasePolicy.h
   purchase_policies/PurchaseROP.h purchase_policies/PurchaseROP.cpp
   purchase_policies/PurchaseTPOP.h purchase_policies/PurchaseTPOP.cpp
@@ -23,7 +28,12 @@ add_executable(ChainSimQServe
   utils/ChainLogger.hpp
   utils/CLI.hpp
 )
-target_link_libraries(ChainSimQServe Qt${QT_VERSION_MAJOR}::Core)
+
+target_link_libraries(ChainSimQServe PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Network
+    Qt${QT_VERSION_MAJOR}::HttpServer
+)
 
 include(GNUInstallDirs)
 install(TARGETS ChainSimQServe
