@@ -17,94 +17,92 @@ void print_simulation_config(const QCommandLineParser &parser, const PurchasePol
     QString separator(80, '=');
     QString subseparator(80, '-');
 
+    // Setup field widths for columns
+    const int labelWidth = 30; // Width for parameter labels
+    const int valueWidth = 20; // Width for values
+    const int descWidth = 30;  // Width for descriptions
+
+    // Header
     out << "\n"
         << separator << "\n";
     out << "ChainSim Configuration\n";
     out << subseparator << "\n\n";
 
-    // General parameters
-    out.setFieldWidth(25);
-    out << "Parameter";
-    out.setFieldWidth(15);
-    out << "Value";
-    out.setFieldWidth(0);
-    out << "Description\n";
-    out << subseparator << "\n";
-
+    // Print column headers with consistent alignment
     out.setFieldAlignment(QTextStream::AlignLeft);
+    out.setFieldWidth(labelWidth);
+    out << "Parameter";
+    out.setFieldWidth(valueWidth);
+    out << "Value";
+    out.setFieldWidth(descWidth);
+    out << "Description";
+    out << "\n"
+        << subseparator << "\n";
 
-    out.setFieldWidth(25);
-    out << "Simulation Length";
-    out.setFieldWidth(15);
-    out << parser.value("simulation_length");
-    out.setFieldWidth(0);
-    out << "Time periods\n";
+    // Helper lambda for consistent row formatting
+    auto printRow = [&](const QString &param, const QString &value, const QString &desc)
+    {
+        out.setFieldAlignment(QTextStream::AlignLeft);
+        out.setFieldWidth(labelWidth);
+        out << param;
+        out.setFieldWidth(valueWidth);
+        out << value;
+        out.setFieldWidth(0); // Reset for description as it might be longer
+        out << desc << "\n";
+    };
 
-    out.setFieldWidth(25);
-    out << "Average Demand";
-    out.setFieldWidth(15);
-    out << parser.value("average_demand");
-    out.setFieldWidth(0);
-    out << "Units per period\n";
+    // General parameters
+    printRow("Simulation Length",
+             parser.value("simulation_length"),
+             "Time periods");
 
-    out.setFieldWidth(25);
-    out << "Lead Time";
-    out.setFieldWidth(15);
-    out << parser.value("average_lead_time");
-    out.setFieldWidth(0);
-    out << "Periods\n";
+    printRow("Average Demand",
+             parser.value("average_demand"),
+             "Units per period");
 
-    out.setFieldWidth(25);
-    out << "Starting Inventory";
-    out.setFieldWidth(15);
-    out << parser.value("starting_inventory");
-    out.setFieldWidth(0);
-    out << "Units\n";
+    printRow("Lead Time",
+             parser.value("average_lead_time"),
+             "Periods");
+
+    printRow("Starting Inventory",
+             parser.value("starting_inventory"),
+             "Units");
 
     // Policy specific parameters
-    out << "\nPolicy Configuration: " << QString::fromStdString(policy.name()) << "\n";
+    out << "\nPolicy Configuration: " << policy.name() << "\n";
     out << subseparator << "\n";
 
     if (policy.name() == "EOQ")
     {
-        out.setFieldWidth(25);
-        out << "Ordering Cost";
-        out.setFieldWidth(15);
-        out << parser.value("ordering_cost");
-        out.setFieldWidth(0);
-        out << "Cost per order\n";
+        printRow("Ordering Cost",
+                 parser.value("ordering_cost"),
+                 "Cost per order");
 
-        out.setFieldWidth(25);
-        out << "Holding Cost Rate";
-        out.setFieldWidth(15);
-        out << parser.value("holding_cost");
-        out.setFieldWidth(0);
-        out << "Annual rate\n";
+        printRow("Holding Cost Rate",
+                 parser.value("holding_cost"),
+                 "Annual rate");
     }
     else if (policy.name() == "TPOP")
     {
-        out.setFieldWidth(25);
-        out << "Review Period";
-        out.setFieldWidth(15);
-        out << parser.value("purchase_period");
-        out.setFieldWidth(0);
-        out << "Periods\n";
+        printRow("Review Period",
+                 parser.value("purchase_period"),
+                 "Periods");
     }
 
+    // Output Configuration
     out << "\nOutput Configuration\n";
     out << subseparator << "\n";
 
-    out.setFieldWidth(25);
-    out << "Output File";
-    out.setFieldWidth(0);
-    out << parser.value("output_file") << "\n";
+    printRow("Output File",
+             parser.value("output_file"),
+             "");
 
-    out.setFieldWidth(25);
-    out << "Log Level";
-    out.setFieldWidth(0);
-    out << parser.value("log_level") << "\n";
+    printRow("Log Level",
+             parser.value("log_level"),
+             "");
 
     out << separator << "\n\n";
+    out.flush(); // Ensure all output is written
 }
 
 std::unique_ptr<PurchasePolicy> create_policy(const QString &policy_name,
@@ -149,15 +147,15 @@ void save_results(const qz::ChainSim::simulation_records_t &records,
         << "purchase_quantity,sale_quantity,lost_sale_quantity\n";
 
     // Write data
-    for (size_t i = 0; i < records.begin()->second.size(); ++i)
+    for (size_t i = 0; i < records.values()[0].size(); ++i)
     {
         out << i << ","
-            << records.at("inventory_quantity")[i] << ","
-            << records.at("demand_quantity")[i] << ","
-            << records.at("procurement_quantity")[i] << ","
-            << records.at("purchase_quantity")[i] << ","
-            << records.at("sale_quantity")[i] << ","
-            << records.at("lost_sale_quantity")[i] << "\n";
+            << records.value("inventory_quantity").at(i) << ","
+            << records.value("demand_quantity").at(i) << ","
+            << records.value("procurement_quantity").at(i) << ","
+            << records.value("purchase_quantity").at(i) << ","
+            << records.value("sale_quantity").at(i) << ","
+            << records.value("lost_sale_quantity").at(i) << "\n";
     }
 }
 
@@ -188,21 +186,22 @@ int main(int argc, char *argv[])
         print_simulation_config(parser, *policy);
 
         // Create and configure simulation
-        qz::ChainSim chainSimulator = (qz::ChainSimBuilder("ChainSim")
-                                           .simulation_length(simulation_length)
-                                           .lead_time(lead_time)
-                                           .average_demand(demand)
-                                           .starting_inventory(starting_inventory)
-                                           .logging_level(log_level)
-                                           .build());
+        auto chainSimulator = qz::ChainSimBuilder()
+                                  .setSimulationName("ChainSim")
+                                  .setSimulationLength(simulation_length)
+                                  .setLeadTime(lead_time)
+                                  .setAverageDemand(demand)
+                                  .setStartingInventory(starting_inventory)
+                                  .setLoggingLevel(log_level)
+                                  .create();
 
-        chainSimulator.initialize_simulation();
+        chainSimulator->initialize_simulation();
 
         // Run simulation
-        chainSimulator.simulate(*policy);
+        chainSimulator->simulate(*policy);
 
         // Get and save results
-        auto simulation_records = chainSimulator.get_simulation_records();
+        auto simulation_records = chainSimulator->get_simulation_records();
         save_results(simulation_records, output_file);
 
         return 0;
