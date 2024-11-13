@@ -2,31 +2,33 @@
 #define CHAINSIM_PURCHASETPOP_H
 
 #include "PurchasePolicy.h"
+#include <QObject>
 #include <cmath>
-#include <stdexcept>
 
 class PurchaseTPOP : public PurchasePolicy
 {
+    Q_OBJECT
+
 public:
-    PurchaseTPOP(unsigned leadTime, double avgDemand, unsigned reviewPeriod);
+    PurchaseTPOP(quint32 leadTime, double avgDemand, quint32 reviewPeriod, QObject* parent = nullptr);
 
-    [[nodiscard]] long get_purchase(const simulation_records_t &pastRecords,
-                                    unsigned current_day) const override;
+    [[nodiscard]] qint64 get_purchase(const simulation_records_t &pastRecords,
+                                      quint32 current_day) const override;
 
-    [[nodiscard]] std::string name() const override;
+    [[nodiscard]] QString name() const override;
 
 private:
-    unsigned m_lead_time;
+    quint32 m_lead_time;
     double m_average_daily_demand;
-    unsigned m_review_period;
+    quint32 m_review_period;
     double m_target_level;
 
     void calculate_target_level();
     void validate_parameters() const;
-    [[nodiscard]] bool is_review_day(unsigned day) const;
-    [[nodiscard]] std::string get_calculation_details(
+    [[nodiscard]] bool is_review_day(quint32 day) const;
+    [[nodiscard]] QString get_calculation_details(
         const simulation_records_t &pastRecords,
-        unsigned current_day) const override;
+        quint32 current_day) const override;
 };
 
 #endif // CHAINSIM_PURCHASETPOP_H

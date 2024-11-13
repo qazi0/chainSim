@@ -1,32 +1,34 @@
-
 #ifndef CHAINSIM_PURCHASEROP_H
 #define CHAINSIM_PURCHASEROP_H
 
 #include "PurchasePolicy.h"
+#include <QObject>
 
 /* Re-Order Point (ROP)
  * Ref: https://manufacturing-software-blog.mrpeasy.com/what-is-reorder-point-and-reorder-point-formula/
- *
- * */
+ */
 class PurchaseROP : public PurchasePolicy
 {
-    unsigned m_lead_time;
+    Q_OBJECT
+
+private:
+    quint32 m_lead_time;
     double m_average_daily_demand;
     double m_safety_stock;
-    long m_reorder_point;
+    qint64 m_reorder_point;
 
 public:
-    PurchaseROP(unsigned leadTime, double avgDemand);
+    PurchaseROP(quint32 leadTime, double avgDemand, QObject* parent = nullptr);
 
-    [[nodiscard]] long
+    [[nodiscard]] qint64
     get_purchase(const simulation_records_t &pastRecords,
-                 unsigned current_day) const final;
+                 quint32 current_day) const final;
 
-    [[nodiscard]] std::string name() const final;
+    [[nodiscard]] QString name() const final;
 
-    [[nodiscard]] std::string get_calculation_details(
+    [[nodiscard]] QString get_calculation_details(
         const simulation_records_t &pastRecords,
-        unsigned current_day) const override;
+        quint32 current_day) const override;
 };
 
 #endif // CHAINSIM_PURCHASEROP_H
