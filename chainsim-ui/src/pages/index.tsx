@@ -510,7 +510,16 @@ export default function Home() {
                     </Typography>
 
                     {/* Description */}
-                    <Card sx={{ mb: 4 }}>
+                    <Card sx={{
+                        mb: 4,
+                        border: theme => `2px solid ${theme.palette.mode === 'dark' ? '#333' : '#e0e0e0'}`,
+                        borderRadius: 2,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                            transform: 'translateY(-2px)',
+                            boxShadow: theme => theme.palette.mode === 'dark' ? '0 8px 16px rgba(0,0,0,0.4)' : '0 8px 16px rgba(0,0,0,0.1)',
+                        }
+                    }}>
                         <CardContent>
                             <Typography variant="h5" gutterBottom>
                                 About ChainSim
@@ -541,7 +550,16 @@ export default function Home() {
                     </Card>
 
                     {/* Configuration Form */}
-                    <Card sx={{ mb: 4 }}>
+                    <Card sx={{
+                        mb: 4,
+                        border: theme => `2px solid ${theme.palette.mode === 'dark' ? '#333' : '#e0e0e0'}`,
+                        borderRadius: 2,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                            transform: 'translateY(-2px)',
+                            boxShadow: theme => theme.palette.mode === 'dark' ? '0 8px 16px rgba(0,0,0,0.4)' : '0 8px 16px rgba(0,0,0,0.1)',
+                        }
+                    }}>
                         <CardContent>
                             <Typography variant="h5" gutterBottom>
                                 Simulation Configuration
@@ -687,28 +705,16 @@ export default function Home() {
                                 </Grid>
 
                                 <Grid item xs={12}>
-                                    <Box sx={{ display: 'flex', gap: 2 }}>
-                                        <Button
-                                            variant="contained"
-                                            color="primary"
-                                            onClick={() => runSimulation()}
-                                            disabled={loading}
-                                            fullWidth
-                                            startIcon={loading && <CircularProgress size={20} color="inherit" />}
-                                            sx={{ flex: 1 }}
-                                        >
-                                            {loading ? 'Running Simulation...' : 'Run Simulation'}
-                                        </Button>
-                                        <Button
-                                            variant="outlined"
-                                            color="primary"
-                                            onClick={runSimulation}
-                                            disabled={loading}
-                                            startIcon={<ArticleIcon />}
-                                        >
-                                            Generate Logs
-                                        </Button>
-                                    </Box>
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        onClick={() => runSimulation()}
+                                        disabled={loading}
+                                        fullWidth
+                                        startIcon={loading && <CircularProgress size={20} color="inherit" />}
+                                    >
+                                        {loading ? 'Running Simulation...' : 'Run Simulation'}
+                                    </Button>
                                 </Grid>
                             </Grid>
                         </CardContent>
@@ -735,7 +741,17 @@ export default function Home() {
 
                     {result && (
                         <>
-                            <Card sx={{ mb: 4, p: 2 }}>
+                            <Card sx={{
+                                mb: 4,
+                                p: 2,
+                                border: theme => `2px solid ${theme.palette.mode === 'dark' ? '#333' : '#e0e0e0'}`,
+                                borderRadius: 2,
+                                transition: 'all 0.3s ease',
+                                '&:hover': {
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: theme => theme.palette.mode === 'dark' ? '0 8px 16px rgba(0,0,0,0.4)' : '0 8px 16px rgba(0,0,0,0.1)',
+                                }
+                            }}>
                                 <CardContent sx={{ p: 3 }}>
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                                         <Typography variant="h5">
@@ -869,7 +885,16 @@ export default function Home() {
                             </Card>
 
                             {/* Analysis section - place this right after the graphs card */}
-                            <Card sx={{ mb: 4 }}>
+                            <Card sx={{
+                                mb: 4,
+                                border: theme => `2px solid ${theme.palette.mode === 'dark' ? '#333' : '#e0e0e0'}`,
+                                borderRadius: 2,
+                                transition: 'all 0.3s ease',
+                                '&:hover': {
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: theme => theme.palette.mode === 'dark' ? '0 8px 16px rgba(0,0,0,0.4)' : '0 8px 16px rgba(0,0,0,0.1)',
+                                }
+                            }}>
                                 <CardContent>
                                     <Typography variant="h5" gutterBottom>
                                         Simulation Analysis Report
@@ -898,7 +923,15 @@ export default function Home() {
                             </Card>
 
                             {/* Existing table view */}
-                            <Card>
+                            <Card sx={{
+                                border: theme => `2px solid ${theme.palette.mode === 'dark' ? '#333' : '#e0e0e0'}`,
+                                borderRadius: 2,
+                                transition: 'all 0.3s ease',
+                                '&:hover': {
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: theme => theme.palette.mode === 'dark' ? '0 8px 16px rgba(0,0,0,0.4)' : '0 8px 16px rgba(0,0,0,0.1)',
+                                }
+                            }}>
                                 <CardContent>
                                     <Typography variant="h5" gutterBottom>
                                         Detailed Results Table
