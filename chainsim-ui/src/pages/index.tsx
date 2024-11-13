@@ -20,8 +20,20 @@ import {
     FormControlLabel,
     Switch,
     CircularProgress,
-    Alert
+    Alert,
+    Tabs,
+    Tab,
 } from '@mui/material';
+import {
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
+    ResponsiveContainer,
+} from 'recharts';
 import '@fontsource/ubuntu/700.css';
 import '@fontsource/roboto/400.css';
 
@@ -50,6 +62,29 @@ interface SimulationResult {
     lost_sale_quantity: number[];
 }
 
+interface TabPanelProps {
+    children?: React.ReactNode;
+    index: number;
+    value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+    const { children, value, index, ...other } = props;
+    return (
+        <div
+            role="tabpanel"
+            hidden={value !== index}
+            {...other}
+        >
+            {value === index && (
+                <Box sx={{ p: 3 }}>
+                    {children}
+                </Box>
+            )}
+        </div>
+    );
+}
+
 export default function Home() {
     const [config, setConfig] = useState<SimulationConfig>({
         simulation_length: 30,
@@ -67,6 +102,7 @@ export default function Home() {
     const [result, setResult] = useState<SimulationResult | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [tabValue, setTabValue] = useState(0);
 
     const handleInputChange = (field: keyof SimulationConfig) => (
         event: React.ChangeEvent<HTMLInputElement>
@@ -126,6 +162,23 @@ export default function Home() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+        setTabValue(newValue);
+    };
+
+    const getPlotData = () => {
+        if (!result) return [];
+        return result.inventory_quantity.map((_, index) => ({
+            day: index,
+            inventory: result.inventory_quantity[index],
+            demand: result.demand_quantity[index],
+            procurement: result.procurement_quantity[index],
+            purchase: result.purchase_quantity[index],
+            sales: result.sale_quantity[index],
+            lostSales: result.lost_sale_quantity[index],
+        }));
     };
 
     return (
@@ -342,41 +395,168 @@ export default function Home() {
                 )}
 
                 {result && (
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h5" gutterBottom>
-                                Simulation Results
-                            </Typography>
-                            <TableContainer component={Paper}>
-                                <Table>
-                                    <TableHead>
-                                        <TableRow>
-                                            <TableCell>Day</TableCell>
-                                            <TableCell>Inventory</TableCell>
-                                            <TableCell>Demand</TableCell>
-                                            <TableCell>Procurement</TableCell>
-                                            <TableCell>Purchase</TableCell>
-                                            <TableCell>Sales</TableCell>
-                                            <TableCell>Lost Sales</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {result.inventory_quantity.map((_, index) => (
-                                            <TableRow key={index}>
-                                                <TableCell>{index}</TableCell>
-                                                <TableCell>{result.inventory_quantity[index]}</TableCell>
-                                                <TableCell>{result.demand_quantity[index]}</TableCell>
-                                                <TableCell>{result.procurement_quantity[index]}</TableCell>
-                                                <TableCell>{result.purchase_quantity[index]}</TableCell>
-                                                <TableCell>{result.sale_quantity[index]}</TableCell>
-                                                <TableCell>{result.lost_sale_quantity[index]}</TableCell>
+                    <>
+                        <Card sx={{ mb: 4 }}>
+                            <CardContent>
+                                <Typography variant="h5" gutterBottom>
+                                    Simulation Results Analysis
+                                </Typography>
+                                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                                    <Tabs
+                                        value={tabValue}
+                                        onChange={handleTabChange}
+                                        variant="scrollable"
+                                        scrollButtons="auto"
+                                    >
+                                        <Tab label="Inventory" />
+                                        <Tab label="Demand & Sales" />
+                                        <Tab label="Procurement" />
+                                        <Tab label="Lost Sales" />
+                                        <Tab label="Combined View" />
+                                    </Tabs>
+                                </Box>
+
+                                <TabPanel value={tabValue} index={0}>
+                                    <ResponsiveContainer width="100%" height={400}>
+                                        <LineChart data={getPlotData()}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis dataKey="day" />
+                                            <YAxis />
+                                            <Tooltip />
+                                            <Legend />
+                                            <Line
+                                                type="monotone"
+                                                dataKey="inventory"
+                                                stroke="#8884d8"
+                                                activeDot={{ r: 8 }}
+                                            />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </TabPanel>
+
+                                <TabPanel value={tabValue} index={1}>
+                                    <ResponsiveContainer width="100%" height={400}>
+                                        <LineChart data={getPlotData()}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis dataKey="day" />
+                                            <YAxis />
+                                            <Tooltip />
+                                            <Legend />
+                                            <Line
+                                                type="monotone"
+                                                dataKey="demand"
+                                                stroke="#82ca9d"
+                                                activeDot={{ r: 8 }}
+                                            />
+                                            <Line
+                                                type="monotone"
+                                                dataKey="sales"
+                                                stroke="#ffc658"
+                                                activeDot={{ r: 8 }}
+                                            />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </TabPanel>
+
+                                <TabPanel value={tabValue} index={2}>
+                                    <ResponsiveContainer width="100%" height={400}>
+                                        <LineChart data={getPlotData()}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis dataKey="day" />
+                                            <YAxis />
+                                            <Tooltip />
+                                            <Legend />
+                                            <Line
+                                                type="monotone"
+                                                dataKey="procurement"
+                                                stroke="#ff7300"
+                                                activeDot={{ r: 8 }}
+                                            />
+                                            <Line
+                                                type="monotone"
+                                                dataKey="purchase"
+                                                stroke="#ff0000"
+                                                activeDot={{ r: 8 }}
+                                            />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </TabPanel>
+
+                                <TabPanel value={tabValue} index={3}>
+                                    <ResponsiveContainer width="100%" height={400}>
+                                        <LineChart data={getPlotData()}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis dataKey="day" />
+                                            <YAxis />
+                                            <Tooltip />
+                                            <Legend />
+                                            <Line
+                                                type="monotone"
+                                                dataKey="lostSales"
+                                                stroke="#ff0000"
+                                                activeDot={{ r: 8 }}
+                                            />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </TabPanel>
+
+                                <TabPanel value={tabValue} index={4}>
+                                    <ResponsiveContainer width="100%" height={400}>
+                                        <LineChart data={getPlotData()}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis dataKey="day" />
+                                            <YAxis />
+                                            <Tooltip />
+                                            <Legend />
+                                            <Line type="monotone" dataKey="inventory" stroke="#8884d8" />
+                                            <Line type="monotone" dataKey="demand" stroke="#82ca9d" />
+                                            <Line type="monotone" dataKey="procurement" stroke="#ff7300" />
+                                            <Line type="monotone" dataKey="purchase" stroke="#ff0000" />
+                                            <Line type="monotone" dataKey="sales" stroke="#ffc658" />
+                                            <Line type="monotone" dataKey="lostSales" stroke="#ff0000" />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </TabPanel>
+                            </CardContent>
+                        </Card>
+
+                        {/* Existing table view */}
+                        <Card>
+                            <CardContent>
+                                <Typography variant="h5" gutterBottom>
+                                    Detailed Results Table
+                                </Typography>
+                                <TableContainer component={Paper}>
+                                    <Table>
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableCell>Day</TableCell>
+                                                <TableCell>Inventory</TableCell>
+                                                <TableCell>Demand</TableCell>
+                                                <TableCell>Procurement</TableCell>
+                                                <TableCell>Purchase</TableCell>
+                                                <TableCell>Sales</TableCell>
+                                                <TableCell>Lost Sales</TableCell>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
-                        </CardContent>
-                    </Card>
+                                        </TableHead>
+                                        <TableBody>
+                                            {result.inventory_quantity.map((_, index) => (
+                                                <TableRow key={index}>
+                                                    <TableCell>{index}</TableCell>
+                                                    <TableCell>{result.inventory_quantity[index]}</TableCell>
+                                                    <TableCell>{result.demand_quantity[index]}</TableCell>
+                                                    <TableCell>{result.procurement_quantity[index]}</TableCell>
+                                                    <TableCell>{result.purchase_quantity[index]}</TableCell>
+                                                    <TableCell>{result.sale_quantity[index]}</TableCell>
+                                                    <TableCell>{result.lost_sale_quantity[index]}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </CardContent>
+                        </Card>
+                    </>
                 )}
             </Container>
         </>
