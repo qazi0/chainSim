@@ -145,7 +145,7 @@ void qz::ChainSim::simulate_day(const PurchasePolicy &purchasePolicy, quint64 da
         m_records[QStringLiteral("procurement_quantity")][delivery_date] += purchase_quantity;
 
         // Lines 3-5: Calculation details
-        m_logger.info(QString("\n%1Calculation Details:").arg(QString(leftMargin, ' ')));
+        m_logger.info(QString("%1Calculation Details:").arg(QString(leftMargin, ' ')));
         QString details = purchasePolicy.get_calculation_details(m_records, day);
         for (const QString &line : details.split('\n'))
         {
