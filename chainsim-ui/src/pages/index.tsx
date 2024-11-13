@@ -24,6 +24,7 @@ import {
     Tabs,
     Tab,
 } from '@mui/material';
+import DownloadIcon from '@mui/icons-material/Download';
 import {
     LineChart,
     Line,
@@ -181,6 +182,36 @@ export default function Home() {
         }));
     };
 
+    const downloadCSV = () => {
+        if (!result) return;
+
+        const headers = ['Day', 'Inventory', 'Demand', 'Procurement', 'Purchase', 'Sales', 'Lost Sales'];
+        const rows = result.inventory_quantity.map((_, index) => [
+            index,
+            result.inventory_quantity[index],
+            result.demand_quantity[index],
+            result.procurement_quantity[index],
+            result.purchase_quantity[index],
+            result.sale_quantity[index],
+            result.lost_sale_quantity[index]
+        ]);
+
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'simulation_results.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <>
             <Head>
@@ -296,6 +327,15 @@ export default function Home() {
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Starting Inventory"
+                                    type="number"
+                                    value={config.starting_inventory}
+                                    onChange={handleInputChange('starting_inventory')}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
                                 <FormControlLabel
                                     control={
                                         <Switch
@@ -398,9 +438,18 @@ export default function Home() {
                     <>
                         <Card sx={{ mb: 4 }}>
                             <CardContent>
-                                <Typography variant="h5" gutterBottom>
-                                    Simulation Results Analysis
-                                </Typography>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                    <Typography variant="h5">
+                                        Simulation Results Analysis
+                                    </Typography>
+                                    <Button
+                                        variant="outlined"
+                                        onClick={downloadCSV}
+                                        startIcon={<DownloadIcon />}
+                                    >
+                                        Download CSV
+                                    </Button>
+                                </Box>
                                 <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                                     <Tabs
                                         value={tabValue}
