@@ -18,7 +18,7 @@ private:
     qint64 m_reorder_point;
 
 public:
-    PurchaseROP(quint32 leadTime, double avgDemand, QObject* parent = nullptr);
+    PurchaseROP(quint32 leadTime, double avgDemand, QObject *parent = nullptr);
 
     [[nodiscard]] qint64
     get_purchase(const simulation_records_t &pastRecords,

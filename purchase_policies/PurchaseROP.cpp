@@ -4,7 +4,7 @@
 
 #include "PurchaseROP.h"
 
-PurchaseROP::PurchaseROP(quint32 leadTime, double avgDemand, QObject* parent)
+PurchaseROP::PurchaseROP(quint32 leadTime, double avgDemand, QObject *parent)
     : PurchasePolicy(parent), m_lead_time{leadTime}, m_average_daily_demand{avgDemand}
 {
     if (leadTime == 0)

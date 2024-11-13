@@ -65,7 +65,7 @@ void qz::ChainSim::simulate_day(const PurchasePolicy &purchasePolicy, quint64 da
     // Setup field widths for consistent formatting
     const int leftMargin = 3;    // Left margin space
     const int labelWidth = 22;   // Width for labels
-    const int valueWidth = 6;   // Width for values
+    const int valueWidth = 6;    // Width for values
     const int columnSpacing = 4; // Space between columns
 
     // Helper lambda for formatting a row with three columns
