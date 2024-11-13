@@ -1,6 +1,6 @@
 #include "PurchaseTPOP.h"
 
-PurchaseTPOP::PurchaseTPOP(quint32 leadTime, double avgDemand, quint32 reviewPeriod, QObject* parent)
+PurchaseTPOP::PurchaseTPOP(quint32 leadTime, double avgDemand, quint32 reviewPeriod, QObject *parent)
     : PurchasePolicy(parent), m_lead_time{leadTime}, m_average_daily_demand{avgDemand}, m_review_period{reviewPeriod}
 {
     validate_parameters();

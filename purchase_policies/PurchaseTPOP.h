@@ -10,7 +10,7 @@ class PurchaseTPOP : public PurchasePolicy
     Q_OBJECT
 
 public:
-    PurchaseTPOP(quint32 leadTime, double avgDemand, quint32 reviewPeriod, QObject* parent = nullptr);
+    PurchaseTPOP(quint32 leadTime, double avgDemand, quint32 reviewPeriod, QObject *parent = nullptr);
 
     [[nodiscard]] qint64 get_purchase(const simulation_records_t &pastRecords,
                                       quint32 current_day) const override;

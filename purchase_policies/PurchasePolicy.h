@@ -27,5 +27,4 @@ public:
         quint32 current_day) const = 0;
 };
 
-
 #endif // CHAINSIM_PURCHASEPOLICY_H

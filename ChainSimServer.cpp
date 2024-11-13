@@ -4,6 +4,7 @@
 #include <QUrlQuery>
 #include <QHttpServerResponse>
 #include <QHttpServerRequest>
+#include <QHttpHeaders>
 #include "purchase_policies/PurchaseROP.h"
 #include "purchase_policies/PurchaseEOQ.h"
 #include "purchase_policies/PurchaseTPOP.h"
@@ -26,8 +27,16 @@ namespace qz
                        [this](const QHttpServerRequest &request)
                        {
                            QUrlQuery query(request.url().query());
+                           QString origin;
                            try
                            {
+                               // Get the Origin header from the request
+                               origin = request.value("Origin");
+                               if (origin.isEmpty())
+                               {
+                                   origin = "*"; // Fallback to allow all if no Origin header
+                               }
+
                                // Log request if log level is 2
                                if (query.hasQueryItem("log_level") && query.queryItemValue("log_level").toUInt() >= 2)
                                {
@@ -36,15 +45,48 @@ namespace qz
 
                                QJsonObject result = runSimulation(query);
                                m_logger.info("Simulation finished successfully");
-                               return QHttpServerResponse(result);
+
+                               // Create response with CORS headers
+                               auto response = QHttpServerResponse(result);
+                               QHttpHeaders headers = response.headers();
+                               headers.append("Access-Control-Allow-Origin", origin.toUtf8());
+                               headers.append("Access-Control-Allow-Methods", "POST, OPTIONS");
+                               headers.append("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                               response.setHeaders(headers);
+                               return response;
                            }
                            catch (const std::exception &e)
                            {
                                QJsonObject error{
                                    {"error", e.what()}};
                                m_logger.error(QString("Simulation failed: %1").arg(e.what()));
-                               return QHttpServerResponse(error, QHttpServerResponse::StatusCode::BadRequest);
+
+                               // Create error response with CORS headers
+                               auto response = QHttpServerResponse(error, QHttpServerResponse::StatusCode::BadRequest);
+                               QHttpHeaders headers = response.headers();
+                               headers.append("Access-Control-Allow-Origin", origin.toUtf8());
+                               headers.append("Access-Control-Allow-Methods", "POST, OPTIONS");
+                               headers.append("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                               response.setHeaders(headers);
+                               return response;
                            }
+                       });
+
+        // Add OPTIONS route for CORS preflight
+        m_server.route("/simulate", QHttpServerRequest::Method::Options,
+                       [](const QHttpServerRequest &request)
+                       {
+                           QString origin = request.value("Origin");
+                           if (origin.isEmpty())
+                               origin = "*";
+
+                           auto response = QHttpServerResponse(QHttpServerResponse::StatusCode::NoContent);
+                           QHttpHeaders headers = response.headers();
+                           headers.append("Access-Control-Allow-Origin", origin.toUtf8());
+                           headers.append("Access-Control-Allow-Methods", "POST, OPTIONS");
+                           headers.append("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                           response.setHeaders(headers);
+                           return response;
                        });
 
         // Start listening on localhost with specified port
