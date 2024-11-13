@@ -47,7 +47,7 @@ QString PurchaseROP::get_calculation_details(
     auto order_qty = (current_inventory <= m_reorder_point) ? std::ceil(m_average_daily_demand * m_lead_time) : 0;
 
     ss << "ROP = LT×D + SS = " << m_lead_time << "×" << m_average_daily_demand
-       << " + " << m_safety_stock << " = " << m_reorder_point << "\n\t  "
+       << " + " << m_safety_stock << " = " << m_reorder_point << "\n"
        << "INV = " << current_inventory << " ≤ " << m_reorder_point
        << " → Order = " << (current_inventory <= m_reorder_point ? "LT×D = " : "0 (No order, IP > ROP)")
        << (order_qty > 0 ? QString("%1×%2 = %3")

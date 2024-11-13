@@ -100,7 +100,7 @@ QString PurchaseEOQ::get_calculation_details(
        << m_ordering_cost << ")/" << m_holding_cost_rate << ") = " << m_eoq << "\n"
        << "ROP = LT×D + SS = " << m_lead_time << "×" << m_average_daily_demand
        << " + " << (m_reorder_point - m_lead_time * m_average_daily_demand)
-       << " = " << m_reorder_point << "\n\t  "
+       << " = " << m_reorder_point << "\n"
        << "INV = I + P = " << current_inventory << " + " << pipeline_inventory
        << " = " << inventory_position << " ≤ " << m_reorder_point
        << " → Order = " << (inventory_position <= m_reorder_point ? QString::number(static_cast<qint64>(std::ceil(m_eoq))) : QStringLiteral("0 (No order, IP > ROP)"));

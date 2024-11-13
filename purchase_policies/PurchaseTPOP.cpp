@@ -101,7 +101,7 @@ QString PurchaseTPOP::get_calculation_details(
     ss << "Protection Interval = R + LT = " << m_review_period << " + "
        << m_lead_time << " = " << protection_interval << "\n"
        << "Target = D×(R+LT) + SS = " << m_average_daily_demand << "×"
-       << protection_interval << " + " << safety_stock << " = " << m_target_level << "\n\t  "
+       << protection_interval << " + " << safety_stock << " = " << m_target_level << "\n"
        << "INV = I + P = " << current_inventory << " + " << pipeline_inventory
        << " = " << inventory_position << "\n\t"
        << "Order = max(0, Target - IP) = max(0, " << m_target_level << " - "
