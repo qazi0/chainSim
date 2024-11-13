@@ -7,6 +7,7 @@
 #include "purchase_policies/PurchaseEOQ.h"
 #include "purchase_policies/PurchaseTPOP.h"
 #include "utils/CLI.hpp"
+#include "ChainSimServer.h"
 
 void print_simulation_config(const QCommandLineParser &parser, const PurchasePolicy &policy)
 {
@@ -169,6 +170,17 @@ int main(int argc, char *argv[])
     {
         QCommandLineParser parser;
         qz::parse_command_line_args(parser, app);
+
+        // Check if server mode is requested
+        if (parser.isSet("server"))
+        {
+            qz::ChainSimServer server;
+            if (!server.start(47761))
+            {
+                return 1;
+            }
+            return app.exec();
+        }
 
         // Get simulation parameters
         auto log_level = parser.value("log_level").toUInt();
