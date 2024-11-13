@@ -1,53 +1,61 @@
 #ifndef CHAINSIM_CHAINSIM_H
 #define CHAINSIM_CHAINSIM_H
 
-#include <iostream>
-#include <vector>
-#include <string>
-#include <cstdint>
-#include <unordered_map>
+#include <QObject>
+#include <QString>
+#include <QVector>
+#include <QMap>
+#include <QDebug>
 
 #include "purchase_policies/PurchasePolicy.h"
 #include "utils/ChainLogger.hpp"
 
 namespace qz
 {
-class ChainSim
-{
-public:
-    using simulation_records_t = std::unordered_map<std::string, std::vector<long>>;
+    class ChainSim : public QObject
+    {
+        Q_OBJECT
 
-    void initialize_simulation();
+    public:
+        using simulation_records_t = QMap<QString, QVector<qint64>>;
 
-    // Simulate entire duration
-    void simulate(const PurchasePolicy &purchasePolicy);
+        void initialize_simulation();
 
-    // Simulate specific number of days
-    void simulate_days(const PurchasePolicy &purchasePolicy, uint64_t days);
+        // Simulate entire duration
+        void simulate(const PurchasePolicy &purchasePolicy);
 
-    // Simulate single day
-    void simulate_day(const PurchasePolicy &purchasePolicy, uint64_t day);
+        // Simulate specific number of days
+        void simulate_days(const PurchasePolicy &purchasePolicy, quint64 days);
 
-    [[nodiscard]] simulation_records_t get_simulation_records() const;
-    [[nodiscard]] uint64_t get_current_day() const { return m_current_day; }
+        // Simulate single day
+        void simulate_day(const PurchasePolicy &purchasePolicy, quint64 day);
 
-private:
-    ChainSim();
-    friend class ChainSimBuilder;
+        [[nodiscard]] simulation_records_t get_simulation_records() const;
+        [[nodiscard]] quint64 get_current_day() const { return m_current_day; }
 
-    uint64_t m_simulation_length{};
-    uint64_t m_starting_inventory{};
-    uint64_t m_lead_time{};
-    double m_current_demand{};
-    uint64_t m_current_day{1}; // Start from day 1
+    Q_SIGNALS:
+        void simulationStarted();
+        void simulationFinished();
+        void daySimulated(quint64 day);
+        void errorOccurred(const QString &error);
 
-    std::string m_simulation_name;
-    std::vector<std::string> m_records_columns;
-    simulation_records_t m_records;
+    private:
+        ChainSim();
+        friend class ChainSimBuilder;
 
-    uint64_t m_logging_level{0};
-    ChainLogger m_logger{};
-};
+        quint64 m_simulation_length{};
+        quint64 m_starting_inventory{};
+        quint64 m_lead_time{};
+        double m_current_demand{};
+        quint64 m_current_day{1}; // Start from day 1
+
+        QString m_simulation_name;
+        QVector<QString> m_records_columns;
+        simulation_records_t m_records;
+
+        quint32 m_logging_level{0};
+        ChainLogger m_logger{};
+    };
 }
 
 #endif // CHAINSIM_CHAINSIM_H
