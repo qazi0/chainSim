@@ -26,6 +26,9 @@ namespace qz
         ChainSimBuilder &setSeed(unsigned seed);
         ChainSimBuilder &setStartingInventory(quint64 startingInventory);
         ChainSimBuilder &setLoggingLevel(quint32 loggingLevel);
+        ChainSimBuilder &setDemandDistribution(const QString &distribution);
+        ChainSimBuilder &setGammaParameters(double shape, double scale);
+        ChainSimBuilder &setUniformParameters(double min, double max);
 
         // Create and return a new ChainSim instance
         std::unique_ptr<ChainSim> create();
@@ -42,6 +45,11 @@ namespace qz
         unsigned m_seed{7};
         quint64 m_starting_inventory{0};
         quint32 m_logging_level{0};
+        QString m_demand_distribution{"normal"};
+        double m_gamma_shape{1.0};
+        double m_gamma_scale{1.0};
+        double m_uniform_min{0.0};
+        double m_uniform_max{100.0};
     };
 }
 
