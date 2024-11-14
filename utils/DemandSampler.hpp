@@ -3,6 +3,7 @@
 
 #include <random>
 #include <memory>
+#include <cmath>
 
 namespace qz
 {
@@ -37,7 +38,6 @@ namespace qz
 
         double sample() override
         {
-            // Keep sampling until we get a non-negative value
             double value;
             do
             {
@@ -53,6 +53,68 @@ namespace qz
         double m_stddev;
         std::mt19937 m_generator;
         std::normal_distribution<double> m_distribution;
+    };
+
+    class GammaDemandSampler : public DemandSampler
+    {
+    public:
+        GammaDemandSampler(double shape, double scale, unsigned seed)
+            : m_shape(shape), m_scale(scale), m_generator(seed),
+              m_distribution(shape, scale) {}
+
+        double sample() override
+        {
+            return m_distribution(m_generator);
+        }
+
+        [[nodiscard]] double getMean() const override { return m_shape * m_scale; }
+
+    private:
+        double m_shape;
+        double m_scale;
+        std::mt19937 m_generator;
+        std::gamma_distribution<double> m_distribution;
+    };
+
+    class PoissonDemandSampler : public DemandSampler
+    {
+    public:
+        explicit PoissonDemandSampler(double mean, unsigned seed)
+            : m_mean(mean), m_generator(seed),
+              m_distribution(mean) {}
+
+        double sample() override
+        {
+            return static_cast<double>(m_distribution(m_generator));
+        }
+
+        [[nodiscard]] double getMean() const override { return m_mean; }
+
+    private:
+        double m_mean;
+        std::mt19937 m_generator;
+        std::poisson_distribution<int> m_distribution;
+    };
+
+    class UniformDemandSampler : public DemandSampler
+    {
+    public:
+        UniformDemandSampler(double min, double max, unsigned seed)
+            : m_min(min), m_max(max), m_generator(seed),
+              m_distribution(min, max) {}
+
+        double sample() override
+        {
+            return m_distribution(m_generator);
+        }
+
+        [[nodiscard]] double getMean() const override { return (m_max + m_min) / 2.0; }
+
+    private:
+        double m_min;
+        double m_max;
+        std::mt19937 m_generator;
+        std::uniform_real_distribution<double> m_distribution;
     };
 
 } // namespace qz
