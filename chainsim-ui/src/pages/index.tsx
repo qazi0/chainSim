@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import {
     Container,
@@ -48,6 +48,9 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Collapse, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
+import { alpha } from '@mui/material/styles';
+import { motion, AnimatePresence } from 'framer-motion';
+import LoadingButton from '@mui/lab/LoadingButton';
 
 interface SimulationConfig {
     simulation_length: number;
@@ -63,6 +66,11 @@ interface SimulationConfig {
     holding_cost?: number;
     purchase_period?: number;
     deterministic: boolean;
+    demand_distribution: 'fixed' | 'normal' | 'gamma' | 'poisson' | 'uniform';
+    gamma_shape?: number;
+    gamma_scale?: number;
+    uniform_min?: number;
+    uniform_max?: number;
 }
 
 interface SimulationResult {
@@ -97,31 +105,82 @@ function TabPanel(props: TabPanelProps) {
     );
 }
 
-const lightTheme = createTheme({
+const customTheme = (mode: 'light' | 'dark') => createTheme({
     palette: {
-        mode: 'light',
+        mode,
         primary: {
-            main: '#1976d2',
+            main: mode === 'light' ? '#1976d2' : '#90caf9',
         },
         background: {
-            default: '#f5f5f5',
-            paper: '#ffffff',
+            default: mode === 'light' ? '#f8fafc' : '#121212',
+            paper: mode === 'light' ? '#ffffff' : '#1e1e1e',
+        },
+    },
+    components: {
+        MuiCard: {
+            styleOverrides: {
+                root: {
+                    borderRadius: '16px',
+                    boxShadow: mode === 'light'
+                        ? '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
+                        : '0 4px 6px -1px rgb(255 255 255 / 0.1), 0 2px 4px -2px rgb(255 255 255 / 0.1)',
+                    transition: 'all 0.3s ease',
+                    border: `1px solid ${mode === 'light' ? '#e2e8f0' : '#2d3748'}`,
+                    '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: mode === 'light'
+                            ? '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)'
+                            : '0 20px 25px -5px rgb(255 255 255 / 0.1), 0 8px 10px -6px rgb(255 255 255 / 0.1)',
+                    },
+                },
+            },
         },
     },
 });
 
-const darkTheme = createTheme({
-    palette: {
-        mode: 'dark',
-        primary: {
-            main: '#90caf9',
-        },
-        background: {
-            default: '#121212',
-            paper: '#1e1e1e',
-        },
-    },
-});
+const SimulationLoadingOverlay = ({ isVisible }: { isVisible: boolean }) => (
+    <AnimatePresence>
+        {isVisible && (
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 9999,
+                }}
+            >
+                <motion.div
+                    initial={{ scale: 0.5 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0.5 }}
+                    style={{
+                        backgroundColor: 'white',
+                        padding: '2rem',
+                        borderRadius: '1rem',
+                        textAlign: 'center',
+                    }}
+                >
+                    <CircularProgress size={60} />
+                    <Typography variant="h6" sx={{ mt: 2, color: 'text.primary' }}>
+                        Simulating the entire period...
+                    </Typography>
+                    <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                        Crunching numbers and analyzing patterns
+                    </Typography>
+                </motion.div>
+            </motion.div>
+        )}
+    </AnimatePresence>
+);
 
 function ScrollButtons() {
     const [showScrollButtons, setShowScrollButtons] = useState(false);
@@ -309,6 +368,118 @@ function StatisticCard({ statistic }: { statistic: StatisticMetadata }) {
     );
 }
 
+// Add this component for distribution-specific parameters
+function DemandDistributionParams({ config, handleInputChange }: {
+    config: SimulationConfig;
+    handleInputChange: (field: keyof SimulationConfig) => (event: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+    switch (config.demand_distribution) {
+        case 'normal':
+            return (
+                <>
+                    <Grid item xs={12} sm={6}>
+                        <TextField
+                            fullWidth
+                            label="Average Demand"
+                            type="number"
+                            value={config.average_demand}
+                            onChange={handleInputChange('average_demand')}
+                            helperText="Mean of the normal distribution"
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <TextField
+                            fullWidth
+                            label="Standard Deviation of Demand"
+                            type="number"
+                            value={config.std_demand}
+                            onChange={handleInputChange('std_demand')}
+                            helperText="Standard deviation of the normal distribution"
+                        />
+                    </Grid>
+                </>
+            );
+        case 'gamma':
+            return (
+                <>
+                    <Grid item xs={12} sm={6}>
+                        <TextField
+                            fullWidth
+                            label="Shape Parameter (k)"
+                            type="number"
+                            value={config.gamma_shape}
+                            onChange={handleInputChange('gamma_shape')}
+                            helperText="Shape parameter of the gamma distribution"
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <TextField
+                            fullWidth
+                            label="Scale Parameter (θ)"
+                            type="number"
+                            value={config.gamma_scale}
+                            onChange={handleInputChange('gamma_scale')}
+                            helperText="Scale parameter of the gamma distribution"
+                        />
+                    </Grid>
+                </>
+            );
+        case 'poisson':
+            return (
+                <Grid item xs={12} sm={6}>
+                    <TextField
+                        fullWidth
+                        label="Average Demand (λ)"
+                        type="number"
+                        value={config.average_demand}
+                        onChange={handleInputChange('average_demand')}
+                        helperText="Mean (and variance) of the Poisson distribution"
+                    />
+                </Grid>
+            );
+        case 'uniform':
+            return (
+                <>
+                    <Grid item xs={12} sm={6}>
+                        <TextField
+                            fullWidth
+                            label="Minimum Demand"
+                            type="number"
+                            value={config.uniform_min}
+                            onChange={handleInputChange('uniform_min')}
+                            helperText="Minimum value of uniform distribution"
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <TextField
+                            fullWidth
+                            label="Maximum Demand"
+                            type="number"
+                            value={config.uniform_max}
+                            onChange={handleInputChange('uniform_max')}
+                            helperText="Maximum value of uniform distribution"
+                        />
+                    </Grid>
+                </>
+            );
+        case 'fixed':
+            return (
+                <Grid item xs={12} sm={6}>
+                    <TextField
+                        fullWidth
+                        label="Fixed Demand"
+                        type="number"
+                        value={config.average_demand}
+                        onChange={handleInputChange('average_demand')}
+                        helperText="Constant demand value"
+                    />
+                </Grid>
+            );
+        default:
+            return null;
+    }
+}
+
 export default function Home() {
     const [config, setConfig] = useState<SimulationConfig>({
         simulation_length: 30,
@@ -320,7 +491,8 @@ export default function Home() {
         log_level: 0,
         seed: 7,
         minimum_lot_size: 10,
-        deterministic: false
+        deterministic: false,
+        demand_distribution: 'normal',
     });
 
     const [result, setResult] = useState<SimulationResult | null>(null);
@@ -329,6 +501,8 @@ export default function Home() {
     const [tabValue, setTabValue] = useState(0);
     const [darkMode, setDarkMode] = useState(false);
     const [generateLogs, setGenerateLogs] = useState(false);
+    const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
+    const resultsRef = useRef<HTMLDivElement>(null);
 
     const handleInputChange = (field: keyof SimulationConfig) => (
         event: React.ChangeEvent<HTMLInputElement>
@@ -340,6 +514,7 @@ export default function Home() {
     };
 
     const runSimulation = async (customConfig?: SimulationConfig) => {
+        setShowLoadingOverlay(true);
         setLoading(true);
         setError(null);
 
@@ -382,6 +557,18 @@ export default function Home() {
             const data = await response.json();
             console.log('Received data:', data); // Debug log
             setResult(data);
+
+            // Add artificial delay for better UX
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // After simulation completes
+            setShowLoadingOverlay(false);
+
+            // Scroll to results
+            setTimeout(() => {
+                resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+
         } catch (err) {
             console.error('Simulation error:', err); // Debug log
             if (err instanceof TypeError && err.message === 'Failed to fetch') {
@@ -391,6 +578,7 @@ export default function Home() {
             }
         } finally {
             setLoading(false);
+            setShowLoadingOverlay(false);
         }
     };
 
@@ -474,13 +662,14 @@ export default function Home() {
     };
 
     return (
-        <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
+        <ThemeProvider theme={customTheme(darkMode ? 'dark' : 'light')}>
             <Box sx={{
                 minHeight: '100vh',
                 bgcolor: 'background.default',
                 color: 'text.primary',
-                transition: 'background-color 0.3s ease'
+                transition: 'all 0.3s ease',
             }}>
+                <SimulationLoadingOverlay isVisible={showLoadingOverlay} />
                 <Head>
                     <title>ChainSim - Supply Chain Simulator</title>
                     <meta name="description" content="Supply Chain Simulation Tool" />
@@ -541,7 +730,21 @@ export default function Home() {
                     </Card>
 
                     {/* Configuration Form */}
-                    <Card sx={{ mb: 4 }}>
+                    <Card sx={{
+                        mb: 4,
+                        position: 'relative',
+                        '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: '4px',
+                            background: theme => `linear-gradient(90deg, ${theme.palette.primary.main}, ${alpha(theme.palette.primary.main, 0.5)})`,
+                            borderTopLeftRadius: '16px',
+                            borderTopRightRadius: '16px',
+                        },
+                    }}>
                         <CardContent>
                             <Typography variant="h5" gutterBottom>
                                 Simulation Configuration
@@ -686,6 +889,28 @@ export default function Home() {
                                     />
                                 </Grid>
 
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        select
+                                        label="Demand Distribution"
+                                        value={config.demand_distribution}
+                                        onChange={handleInputChange('demand_distribution')}
+                                        helperText="Select the probability distribution for demand"
+                                    >
+                                        <MenuItem value="fixed">Fixed (Constant)</MenuItem>
+                                        <MenuItem value="normal">Normal</MenuItem>
+                                        <MenuItem value="gamma">Gamma</MenuItem>
+                                        <MenuItem value="poisson">Poisson</MenuItem>
+                                        <MenuItem value="uniform">Uniform</MenuItem>
+                                    </TextField>
+                                </Grid>
+
+                                <DemandDistributionParams
+                                    config={config}
+                                    handleInputChange={handleInputChange}
+                                />
+
                                 <Grid item xs={12}>
                                     <Box sx={{ display: 'flex', gap: 2 }}>
                                         <Button
@@ -733,208 +958,215 @@ export default function Home() {
                         </Alert>
                     )}
 
-                    {result && (
-                        <>
-                            <Card sx={{ mb: 4, p: 2 }}>
-                                <CardContent sx={{ p: 3 }}>
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                                        <Typography variant="h5">
-                                            Simulation Results Analysis
+                    {/* Add ref to results section */}
+                    <div ref={resultsRef}>
+                        {result && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                <Card sx={{ mb: 4, p: 2 }}>
+                                    <CardContent sx={{ p: 3 }}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                            <Typography variant="h5">
+                                                Simulation Results Analysis
+                                            </Typography>
+                                            <Button
+                                                variant="outlined"
+                                                onClick={downloadCSV}
+                                                startIcon={<DownloadIcon />}
+                                            >
+                                                Download CSV
+                                            </Button>
+                                        </Box>
+                                        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                                            <Tabs
+                                                value={tabValue}
+                                                onChange={handleTabChange}
+                                                variant="scrollable"
+                                                scrollButtons="auto"
+                                            >
+                                                <Tab label="Inventory" />
+                                                <Tab label="Demand & Sales" />
+                                                <Tab label="Procurement" />
+                                                <Tab label="Lost Sales" />
+                                                <Tab label="Combined View" />
+                                            </Tabs>
+                                        </Box>
+
+                                        <TabPanel value={tabValue} index={0}>
+                                            <ResponsiveContainer width="100%" height={400}>
+                                                <LineChart data={getPlotData()}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="day" />
+                                                    <YAxis />
+                                                    <Tooltip />
+                                                    <Legend />
+                                                    <Line
+                                                        type="monotone"
+                                                        dataKey="inventory"
+                                                        stroke="#8884d8"
+                                                        activeDot={{ r: 8 }}
+                                                    />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        </TabPanel>
+
+                                        <TabPanel value={tabValue} index={1}>
+                                            <ResponsiveContainer width="100%" height={400}>
+                                                <LineChart data={getPlotData()}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="day" />
+                                                    <YAxis />
+                                                    <Tooltip />
+                                                    <Legend />
+                                                    <Line
+                                                        type="monotone"
+                                                        dataKey="demand"
+                                                        stroke="#82ca9d"
+                                                        activeDot={{ r: 8 }}
+                                                    />
+                                                    <Line
+                                                        type="monotone"
+                                                        dataKey="sales"
+                                                        stroke="#ffc658"
+                                                        activeDot={{ r: 8 }}
+                                                    />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        </TabPanel>
+
+                                        <TabPanel value={tabValue} index={2}>
+                                            <ResponsiveContainer width="100%" height={400}>
+                                                <LineChart data={getPlotData()}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="day" />
+                                                    <YAxis />
+                                                    <Tooltip />
+                                                    <Legend />
+                                                    <Line
+                                                        type="monotone"
+                                                        dataKey="procurement"
+                                                        stroke="#ff7300"
+                                                        activeDot={{ r: 8 }}
+                                                    />
+                                                    <Line
+                                                        type="monotone"
+                                                        dataKey="purchase"
+                                                        stroke="#ff0000"
+                                                        activeDot={{ r: 8 }}
+                                                    />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        </TabPanel>
+
+                                        <TabPanel value={tabValue} index={3}>
+                                            <ResponsiveContainer width="100%" height={400}>
+                                                <LineChart data={getPlotData()}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="day" />
+                                                    <YAxis />
+                                                    <Tooltip />
+                                                    <Legend />
+                                                    <Line
+                                                        type="monotone"
+                                                        dataKey="lostSales"
+                                                        stroke="#ff0000"
+                                                        activeDot={{ r: 8 }}
+                                                    />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        </TabPanel>
+
+                                        <TabPanel value={tabValue} index={4}>
+                                            <ResponsiveContainer width="100%" height={400}>
+                                                <LineChart data={getPlotData()}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="day" />
+                                                    <YAxis />
+                                                    <Tooltip />
+                                                    <Legend />
+                                                    <Line type="monotone" dataKey="inventory" stroke="#8884d8" />
+                                                    <Line type="monotone" dataKey="demand" stroke="#82ca9d" />
+                                                    <Line type="monotone" dataKey="procurement" stroke="#ff7300" />
+                                                    <Line type="monotone" dataKey="purchase" stroke="#ff0000" />
+                                                    <Line type="monotone" dataKey="sales" stroke="#ffc658" />
+                                                    <Line type="monotone" dataKey="lostSales" stroke="#ff0000" />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        </TabPanel>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Analysis section - place this right after the graphs card */}
+                                <Card sx={{ mb: 4 }}>
+                                    <CardContent>
+                                        <Typography variant="h5" gutterBottom>
+                                            Simulation Analysis Report
                                         </Typography>
-                                        <Button
-                                            variant="outlined"
-                                            onClick={downloadCSV}
-                                            startIcon={<DownloadIcon />}
-                                        >
-                                            Download CSV
-                                        </Button>
-                                    </Box>
-                                    <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                                        <Tabs
-                                            value={tabValue}
-                                            onChange={handleTabChange}
-                                            variant="scrollable"
-                                            scrollButtons="auto"
-                                        >
-                                            <Tab label="Inventory" />
-                                            <Tab label="Demand & Sales" />
-                                            <Tab label="Procurement" />
-                                            <Tab label="Lost Sales" />
-                                            <Tab label="Combined View" />
-                                        </Tabs>
-                                    </Box>
-
-                                    <TabPanel value={tabValue} index={0}>
-                                        <ResponsiveContainer width="100%" height={400}>
-                                            <LineChart data={getPlotData()}>
-                                                <CartesianGrid strokeDasharray="3 3" />
-                                                <XAxis dataKey="day" />
-                                                <YAxis />
-                                                <Tooltip />
-                                                <Legend />
-                                                <Line
-                                                    type="monotone"
-                                                    dataKey="inventory"
-                                                    stroke="#8884d8"
-                                                    activeDot={{ r: 8 }}
-                                                />
-                                            </LineChart>
-                                        </ResponsiveContainer>
-                                    </TabPanel>
-
-                                    <TabPanel value={tabValue} index={1}>
-                                        <ResponsiveContainer width="100%" height={400}>
-                                            <LineChart data={getPlotData()}>
-                                                <CartesianGrid strokeDasharray="3 3" />
-                                                <XAxis dataKey="day" />
-                                                <YAxis />
-                                                <Tooltip />
-                                                <Legend />
-                                                <Line
-                                                    type="monotone"
-                                                    dataKey="demand"
-                                                    stroke="#82ca9d"
-                                                    activeDot={{ r: 8 }}
-                                                />
-                                                <Line
-                                                    type="monotone"
-                                                    dataKey="sales"
-                                                    stroke="#ffc658"
-                                                    activeDot={{ r: 8 }}
-                                                />
-                                            </LineChart>
-                                        </ResponsiveContainer>
-                                    </TabPanel>
-
-                                    <TabPanel value={tabValue} index={2}>
-                                        <ResponsiveContainer width="100%" height={400}>
-                                            <LineChart data={getPlotData()}>
-                                                <CartesianGrid strokeDasharray="3 3" />
-                                                <XAxis dataKey="day" />
-                                                <YAxis />
-                                                <Tooltip />
-                                                <Legend />
-                                                <Line
-                                                    type="monotone"
-                                                    dataKey="procurement"
-                                                    stroke="#ff7300"
-                                                    activeDot={{ r: 8 }}
-                                                />
-                                                <Line
-                                                    type="monotone"
-                                                    dataKey="purchase"
-                                                    stroke="#ff0000"
-                                                    activeDot={{ r: 8 }}
-                                                />
-                                            </LineChart>
-                                        </ResponsiveContainer>
-                                    </TabPanel>
-
-                                    <TabPanel value={tabValue} index={3}>
-                                        <ResponsiveContainer width="100%" height={400}>
-                                            <LineChart data={getPlotData()}>
-                                                <CartesianGrid strokeDasharray="3 3" />
-                                                <XAxis dataKey="day" />
-                                                <YAxis />
-                                                <Tooltip />
-                                                <Legend />
-                                                <Line
-                                                    type="monotone"
-                                                    dataKey="lostSales"
-                                                    stroke="#ff0000"
-                                                    activeDot={{ r: 8 }}
-                                                />
-                                            </LineChart>
-                                        </ResponsiveContainer>
-                                    </TabPanel>
-
-                                    <TabPanel value={tabValue} index={4}>
-                                        <ResponsiveContainer width="100%" height={400}>
-                                            <LineChart data={getPlotData()}>
-                                                <CartesianGrid strokeDasharray="3 3" />
-                                                <XAxis dataKey="day" />
-                                                <YAxis />
-                                                <Tooltip />
-                                                <Legend />
-                                                <Line type="monotone" dataKey="inventory" stroke="#8884d8" />
-                                                <Line type="monotone" dataKey="demand" stroke="#82ca9d" />
-                                                <Line type="monotone" dataKey="procurement" stroke="#ff7300" />
-                                                <Line type="monotone" dataKey="purchase" stroke="#ff0000" />
-                                                <Line type="monotone" dataKey="sales" stroke="#ffc658" />
-                                                <Line type="monotone" dataKey="lostSales" stroke="#ff0000" />
-                                            </LineChart>
-                                        </ResponsiveContainer>
-                                    </TabPanel>
-                                </CardContent>
-                            </Card>
-
-                            {/* Analysis section - place this right after the graphs card */}
-                            <Card sx={{ mb: 4 }}>
-                                <CardContent>
-                                    <Typography variant="h5" gutterBottom>
-                                        Simulation Analysis Report
-                                    </Typography>
-                                    <>
-                                        <Grid container spacing={3}>
-                                            <Grid item xs={12} md={6}>
-                                                <Typography variant="h6" gutterBottom>
-                                                    Performance Metrics
-                                                </Typography>
-                                                {getStatisticsMetadata(calculateAnalysis(result)).slice(0, 6).map((stat, index) => (
-                                                    <StatisticCard key={index} statistic={stat} />
-                                                ))}
+                                        <>
+                                            <Grid container spacing={3}>
+                                                <Grid item xs={12} md={6}>
+                                                    <Typography variant="h6" gutterBottom>
+                                                        Performance Metrics
+                                                    </Typography>
+                                                    {getStatisticsMetadata(calculateAnalysis(result)).slice(0, 6).map((stat, index) => (
+                                                        <StatisticCard key={index} statistic={stat} />
+                                                    ))}
+                                                </Grid>
+                                                <Grid item xs={12} md={6}>
+                                                    <Typography variant="h6" gutterBottom>
+                                                        Order Analysis
+                                                    </Typography>
+                                                    {getStatisticsMetadata(calculateAnalysis(result)).slice(6).map((stat, index) => (
+                                                        <StatisticCard key={index} statistic={stat} />
+                                                    ))}
+                                                </Grid>
                                             </Grid>
-                                            <Grid item xs={12} md={6}>
-                                                <Typography variant="h6" gutterBottom>
-                                                    Order Analysis
-                                                </Typography>
-                                                {getStatisticsMetadata(calculateAnalysis(result)).slice(6).map((stat, index) => (
-                                                    <StatisticCard key={index} statistic={stat} />
-                                                ))}
-                                            </Grid>
-                                        </Grid>
-                                    </>
-                                </CardContent>
-                            </Card>
+                                        </>
+                                    </CardContent>
+                                </Card>
 
-                            {/* Existing table view */}
-                            <Card>
-                                <CardContent>
-                                    <Typography variant="h5" gutterBottom>
-                                        Detailed Results Table
-                                    </Typography>
-                                    <TableContainer component={Paper}>
-                                        <Table>
-                                            <TableHead>
-                                                <TableRow>
-                                                    <TableCell>Day</TableCell>
-                                                    <TableCell>Inventory</TableCell>
-                                                    <TableCell>Demand</TableCell>
-                                                    <TableCell>Procurement</TableCell>
-                                                    <TableCell>Purchase</TableCell>
-                                                    <TableCell>Sales</TableCell>
-                                                    <TableCell>Lost Sales</TableCell>
-                                                </TableRow>
-                                            </TableHead>
-                                            <TableBody>
-                                                {result.inventory_quantity.map((_, index) => (
-                                                    <TableRow key={index}>
-                                                        <TableCell>{index}</TableCell>
-                                                        <TableCell>{result.inventory_quantity[index]}</TableCell>
-                                                        <TableCell>{result.demand_quantity[index]}</TableCell>
-                                                        <TableCell>{result.procurement_quantity[index]}</TableCell>
-                                                        <TableCell>{result.purchase_quantity[index]}</TableCell>
-                                                        <TableCell>{result.sale_quantity[index]}</TableCell>
-                                                        <TableCell>{result.lost_sale_quantity[index]}</TableCell>
+                                {/* Existing table view */}
+                                <Card>
+                                    <CardContent>
+                                        <Typography variant="h5" gutterBottom>
+                                            Detailed Results Table
+                                        </Typography>
+                                        <TableContainer component={Paper}>
+                                            <Table>
+                                                <TableHead>
+                                                    <TableRow>
+                                                        <TableCell>Day</TableCell>
+                                                        <TableCell>Inventory</TableCell>
+                                                        <TableCell>Demand</TableCell>
+                                                        <TableCell>Procurement</TableCell>
+                                                        <TableCell>Purchase</TableCell>
+                                                        <TableCell>Sales</TableCell>
+                                                        <TableCell>Lost Sales</TableCell>
                                                     </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </TableContainer>
-                                </CardContent>
-                            </Card>
-                        </>
-                    )}
+                                                </TableHead>
+                                                <TableBody>
+                                                    {result.inventory_quantity.map((_, index) => (
+                                                        <TableRow key={index}>
+                                                            <TableCell>{index}</TableCell>
+                                                            <TableCell>{result.inventory_quantity[index]}</TableCell>
+                                                            <TableCell>{result.demand_quantity[index]}</TableCell>
+                                                            <TableCell>{result.procurement_quantity[index]}</TableCell>
+                                                            <TableCell>{result.purchase_quantity[index]}</TableCell>
+                                                            <TableCell>{result.sale_quantity[index]}</TableCell>
+                                                            <TableCell>{result.lost_sale_quantity[index]}</TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </TableContainer>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+                        )}
+                    </div>
                 </Container>
 
                 <ScrollButtons />
