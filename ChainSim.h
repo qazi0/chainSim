@@ -6,9 +6,11 @@
 #include <QVector>
 #include <QMap>
 #include <QDebug>
+#include <memory>
 
 #include "purchase_policies/PurchasePolicy.h"
 #include "utils/ChainLogger.hpp"
+#include "utils/DemandSampler.hpp"
 
 namespace qz
 {
@@ -46,7 +48,7 @@ namespace qz
         quint64 m_simulation_length{};
         quint64 m_starting_inventory{};
         quint64 m_lead_time{};
-        double m_current_demand{};
+        std::unique_ptr<DemandSampler> m_demandSampler;
         quint64 m_current_day{1}; // Start from day 1
 
         QString m_simulation_name;

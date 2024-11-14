@@ -18,7 +18,13 @@ void qz::ChainSim::initialize_simulation()
         m_records[col].fill(0, m_simulation_length);
     }
 
-    m_records[QStringLiteral("demand_quantity")].fill(m_current_demand, m_simulation_length);
+    // Sample demand for each day
+    for (int i = 0; i < m_simulation_length; ++i)
+    {
+        m_records[QStringLiteral("demand_quantity")][i] =
+            static_cast<qint64>(m_demandSampler->sample());
+    }
+
     m_records[QStringLiteral("inventory_quantity")][0] = m_starting_inventory;
     m_current_day = 1; // Reset current day
 
