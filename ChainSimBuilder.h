@@ -5,6 +5,7 @@
 #include <QString>
 #include <memory>
 #include "ChainSim.h"
+#include "utils/DemandSampler.hpp"
 
 namespace qz
 {
@@ -20,6 +21,9 @@ namespace qz
         ChainSimBuilder &setSimulationLength(quint64 simulationLength);
         ChainSimBuilder &setLeadTime(quint64 leadTime);
         ChainSimBuilder &setAverageDemand(double averageDemand);
+        ChainSimBuilder &setDemandStdDev(double stdDev);
+        ChainSimBuilder &setDeterministic(bool deterministic);
+        ChainSimBuilder &setSeed(unsigned seed);
         ChainSimBuilder &setStartingInventory(quint64 startingInventory);
         ChainSimBuilder &setLoggingLevel(quint32 loggingLevel);
 
@@ -32,7 +36,10 @@ namespace qz
         QString m_simulation_name;
         quint64 m_simulation_length{30};
         quint64 m_lead_time{5};
-        double m_current_demand{50.0};
+        double m_average_demand{50.0};
+        double m_demand_stddev{10.0};
+        bool m_deterministic{false};
+        unsigned m_seed{7};
         quint64 m_starting_inventory{0};
         quint32 m_logging_level{0};
     };

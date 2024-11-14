@@ -39,13 +39,35 @@ qz::ChainSimBuilder &qz::ChainSimBuilder::setLeadTime(quint64 leadTime)
     return *this;
 }
 
-qz::ChainSimBuilder &qz::ChainSimBuilder::setAverageDemand(double demand)
+qz::ChainSimBuilder &qz::ChainSimBuilder::setAverageDemand(double averageDemand)
 {
-    if (demand <= 0)
+    if (averageDemand <= 0)
     {
         throw std::invalid_argument("Average demand must be positive");
     }
-    m_current_demand = demand;
+    m_average_demand = averageDemand;
+    return *this;
+}
+
+qz::ChainSimBuilder &qz::ChainSimBuilder::setDemandStdDev(double stdDev)
+{
+    if (stdDev < 0)
+    {
+        throw std::invalid_argument("Standard deviation cannot be negative");
+    }
+    m_demand_stddev = stdDev;
+    return *this;
+}
+
+qz::ChainSimBuilder &qz::ChainSimBuilder::setDeterministic(bool deterministic)
+{
+    m_deterministic = deterministic;
+    return *this;
+}
+
+qz::ChainSimBuilder &qz::ChainSimBuilder::setSeed(unsigned seed)
+{
+    m_seed = seed;
     return *this;
 }
 
@@ -79,7 +101,7 @@ void qz::ChainSimBuilder::validateConfiguration() const
     {
         throw std::invalid_argument("Lead time not set or invalid");
     }
-    if (m_current_demand <= 0)
+    if (m_average_demand <= 0)
     {
         throw std::invalid_argument("Average demand not set or invalid");
     }
@@ -96,7 +118,18 @@ std::unique_ptr<qz::ChainSim> qz::ChainSimBuilder::create()
     sim->m_simulation_name = m_simulation_name;
     sim->m_simulation_length = m_simulation_length;
     sim->m_lead_time = m_lead_time;
-    sim->m_current_demand = m_current_demand;
+
+    // Create appropriate demand sampler
+    if (m_deterministic)
+    {
+        sim->m_demandSampler = std::make_unique<FixedDemandSampler>(m_average_demand);
+    }
+    else
+    {
+        sim->m_demandSampler = std::make_unique<NormalDemandSampler>(
+            m_average_demand, m_demand_stddev, m_seed);
+    }
+
     sim->m_starting_inventory = m_starting_inventory;
     sim->m_logging_level = m_logging_level;
 
