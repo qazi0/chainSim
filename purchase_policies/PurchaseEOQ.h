@@ -2,32 +2,38 @@
 #define CHAINSIM_PURCHASEEOQ_H
 
 #include "PurchasePolicy.h"
+#include <QObject>
 #include <cmath>
-#include <stdexcept>
 
 class PurchaseEOQ : public PurchasePolicy
 {
+    Q_OBJECT
+
 public:
-    PurchaseEOQ(unsigned leadTime, double avgDemand, double orderingCost, double holdingCostRate);
+    PurchaseEOQ(quint32 leadTime,
+                double avgDemand,
+                double orderingCost,
+                double holdingCostRate,
+                QObject *parent = nullptr);
 
-    [[nodiscard]] long get_purchase(const simulation_records_t &pastRecords,
-                                    unsigned current_day) const override;
+    [[nodiscard]] qint64 get_purchase(const simulation_records_t &pastRecords,
+                                      quint32 current_day) const override;
 
-    [[nodiscard]] std::string name() const override;
+    [[nodiscard]] QString name() const override;
 
 private:
-    unsigned m_lead_time;
+    quint32 m_lead_time;
     double m_average_daily_demand;
     double m_ordering_cost;
     double m_holding_cost_rate;
     double m_eoq;
-    double m_reorder_point;
+    qint64 m_reorder_point;
 
     void calculate_eoq();
     void validate_parameters() const;
-    [[nodiscard]] std::string get_calculation_details(
+    [[nodiscard]] QString get_calculation_details(
         const simulation_records_t &pastRecords,
-        unsigned current_day) const override;
+        quint32 current_day) const override;
 };
 
 #endif // CHAINSIM_PURCHASEEOQ_H

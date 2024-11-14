@@ -1,28 +1,30 @@
 #ifndef CHAINSIM_PURCHASEPOLICY_H
 #define CHAINSIM_PURCHASEPOLICY_H
 
-#include <string>
-#include <unordered_map>
-#include <vector>
+#include <QString>
+#include <QMap>
+#include <QVector>
 #include <cmath>
-#include <sstream>
-#include <stdexcept>
+#include <QTextStream>
+#include <QObject>
 
-class PurchasePolicy
+class PurchasePolicy : public QObject
 {
+    Q_OBJECT
+
 public:
-    using simulation_records_t = std::unordered_map<std::string, std::vector<long>>;
+    using simulation_records_t = QMap<QString, QVector<qint64>>;
 
-    PurchasePolicy() = default;
+    PurchasePolicy(QObject *parent = nullptr) {}
 
-    [[nodiscard]] virtual long
-    get_purchase(const simulation_records_t &pastRecords, unsigned current_day) const = 0;
+    [[nodiscard]] virtual qint64
+    get_purchase(const simulation_records_t &pastRecords, quint32 current_day) const = 0;
 
-    [[nodiscard]] virtual std::string name() const = 0;
+    [[nodiscard]] virtual QString name() const = 0;
 
-    [[nodiscard]] virtual std::string get_calculation_details(
+    [[nodiscard]] virtual QString get_calculation_details(
         const simulation_records_t &pastRecords,
-        unsigned current_day) const = 0;
+        quint32 current_day) const = 0;
 };
 
 #endif // CHAINSIM_PURCHASEPOLICY_H

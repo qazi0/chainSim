@@ -1,78 +1,115 @@
+#include <QCoreApplication>
+#include <QTextStream>
+#include <QDebug>
+#include <QFile>
 #include "ChainSimBuilder.h"
 #include "purchase_policies/PurchaseROP.h"
 #include "purchase_policies/PurchaseEOQ.h"
 #include "purchase_policies/PurchaseTPOP.h"
 #include "utils/CLI.hpp"
-#include <memory>
-#include <fstream>
-#include <iomanip>
+#include "ChainSimServer.h"
 
-void print_simulation_config(const argparse::ArgumentParser &parser,
-                             const PurchasePolicy &policy)
+void print_simulation_config(const QCommandLineParser &parser, const PurchasePolicy &policy)
 {
-    if (parser.get<unsigned>("log_level") < 1)
+    if (parser.value("log_level").toUInt() < 1)
         return;
 
-    std::cout << "\n"
-              << std::string(80, '=') << "\n";
-    std::cout << "ChainSim Configuration\n";
-    std::cout << std::string(80, '-') << "\n\n";
+    QTextStream out(stdout);
+    QString separator(80, '=');
+    QString subseparator(80, '-');
+
+    // Setup field widths for columns
+    const int labelWidth = 30; // Width for parameter labels
+    const int valueWidth = 20; // Width for values
+    const int descWidth = 30;  // Width for descriptions
+
+    // Header
+    out << "\n"
+        << separator << "\n";
+    out << "ChainSim Configuration\n";
+    out << subseparator << "\n\n";
+
+    // Print column headers with consistent alignment
+    out.setFieldAlignment(QTextStream::AlignLeft);
+    out.setFieldWidth(labelWidth);
+    out << "Parameter";
+    out.setFieldWidth(valueWidth);
+    out << "Value";
+    out.setFieldWidth(descWidth);
+    out << "Description";
+    out << "\n"
+        << subseparator << "\n";
+
+    // Helper lambda for consistent row formatting
+    auto printRow = [&](const QString &param, const QString &value, const QString &desc)
+    {
+        out.setFieldAlignment(QTextStream::AlignLeft);
+        out.setFieldWidth(labelWidth);
+        out << param;
+        out.setFieldWidth(valueWidth);
+        out << value;
+        out.setFieldWidth(0); // Reset for description as it might be longer
+        out << desc << "\n";
+    };
 
     // General parameters
-    std::cout << std::left << std::setw(25) << "Parameter"
-              << std::setw(15) << "Value" << "Description\n";
-    std::cout << std::string(80, '-') << "\n";
+    printRow("Simulation Length",
+             parser.value("simulation_length"),
+             "Time periods");
 
-    std::cout << std::left << std::setw(25) << "Simulation Length"
-              << std::setw(15) << parser.get<uint64_t>("simulation_length")
-              << "Time periods\n";
+    printRow("Average Demand",
+             parser.value("average_demand"),
+             "Units per period");
 
-    std::cout << std::left << std::setw(25) << "Average Demand"
-              << std::setw(15) << parser.get<double>("average_demand")
-              << "Units per period\n";
+    printRow("Lead Time",
+             parser.value("average_lead_time"),
+             "Periods");
 
-    std::cout << std::left << std::setw(25) << "Lead Time"
-              << std::setw(15) << parser.get<uint64_t>("average_lead_time")
-              << "Periods\n";
-
-    std::cout << std::left << std::setw(25) << "Starting Inventory"
-              << std::setw(15) << parser.get<uint64_t>("starting_inventory")
-              << "Units\n";
+    printRow("Starting Inventory",
+             parser.value("starting_inventory"),
+             "Units");
 
     // Policy specific parameters
-    std::cout << "\nPolicy Configuration: " << policy.name() << "\n";
-    std::cout << std::string(80, '-') << "\n";
+    out << "\nPolicy Configuration: " << policy.name() << "\n";
+    out << subseparator << "\n";
 
     if (policy.name() == "EOQ")
     {
-        std::cout << std::left << std::setw(25) << "Ordering Cost"
-                  << std::setw(15) << parser.get<double>("ordering_cost")
-                  << "Cost per order\n";
-        std::cout << std::left << std::setw(25) << "Holding Cost Rate"
-                  << std::setw(15) << parser.get<double>("holding_cost")
-                  << "Annual rate\n";
+        printRow("Ordering Cost",
+                 parser.value("ordering_cost"),
+                 "Cost per order");
+
+        printRow("Holding Cost Rate",
+                 parser.value("holding_cost"),
+                 "Annual rate");
     }
     else if (policy.name() == "TPOP")
     {
-        std::cout << std::left << std::setw(25) << "Review Period"
-                  << std::setw(15) << parser.get<uint64_t>("purchase_period")
-                  << "Periods\n";
+        printRow("Review Period",
+                 parser.value("purchase_period"),
+                 "Periods");
     }
 
-    std::cout << "\nOutput Configuration\n";
-    std::cout << std::string(80, '-') << "\n";
-    std::cout << std::left << std::setw(25) << "Output File"
-              << parser.get<std::string>("output_file") << "\n";
-    std::cout << std::left << std::setw(25) << "Log Level"
-              << parser.get<unsigned>("log_level") << "\n";
+    // Output Configuration
+    out << "\nOutput Configuration\n";
+    out << subseparator << "\n";
 
-    std::cout << std::string(80, '=') << "\n\n";
+    printRow("Output File",
+             parser.value("output_file"),
+             "");
+
+    printRow("Log Level",
+             parser.value("log_level"),
+             "");
+
+    out << separator << "\n\n";
+    out.flush(); // Ensure all output is written
 }
 
-std::unique_ptr<PurchasePolicy> create_policy(const std::string &policy_name,
+std::unique_ptr<PurchasePolicy> create_policy(const QString &policy_name,
                                               unsigned lead_time,
                                               double avg_demand,
-                                              const argparse::ArgumentParser &parser)
+                                              const QCommandLineParser &parser)
 {
     if (policy_name == "ROP")
     {
@@ -80,62 +117,79 @@ std::unique_ptr<PurchasePolicy> create_policy(const std::string &policy_name,
     }
     else if (policy_name == "EOQ")
     {
-        double ordering_cost = parser.get<double>("ordering_cost");
-        double holding_cost = parser.get<double>("holding_cost");
+        double ordering_cost = parser.value("ordering_cost").toDouble();
+        double holding_cost = parser.value("holding_cost").toDouble();
         return std::make_unique<PurchaseEOQ>(lead_time, avg_demand, ordering_cost, holding_cost);
     }
     else if (policy_name == "TPOP")
     {
-        unsigned review_period = parser.get<uint64_t>("purchase_period");
+        unsigned review_period = parser.value("purchase_period").toULongLong();
         return std::make_unique<PurchaseTPOP>(lead_time, avg_demand, review_period);
     }
     else
     {
-        throw std::invalid_argument("Unsupported policy: " + policy_name);
+        throw std::invalid_argument("Unsupported policy: " + policy_name.toStdString());
     }
 }
 
 void save_results(const qz::ChainSim::simulation_records_t &records,
-                  const std::string &filename)
+                  const QString &filename)
 {
-    std::ofstream outfile(filename);
-    if (!outfile)
+    QFile file(filename);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
     {
-        throw std::runtime_error("Could not open output file: " + filename);
+        throw std::runtime_error("Could not open output file: " + filename.toStdString());
     }
 
+    QTextStream out(&file);
+
     // Write header
-    outfile << "Day,inventory_quantity,demand_quantity,procurement_quantity,"
-            << "purchase_quantity,sale_quantity,lost_sale_quantity\n";
+    out << "Day,inventory_quantity,demand_quantity,procurement_quantity,"
+        << "purchase_quantity,sale_quantity,lost_sale_quantity\n";
 
     // Write data
-    for (size_t i = 0; i < records.begin()->second.size(); ++i)
+    for (size_t i = 0; i < records.values()[0].size(); ++i)
     {
-        outfile << i << ","
-                << records.at("inventory_quantity")[i] << ","
-                << records.at("demand_quantity")[i] << ","
-                << records.at("procurement_quantity")[i] << ","
-                << records.at("purchase_quantity")[i] << ","
-                << records.at("sale_quantity")[i] << ","
-                << records.at("lost_sale_quantity")[i] << "\n";
+        out << i << ","
+            << records.value("inventory_quantity").at(i) << ","
+            << records.value("demand_quantity").at(i) << ","
+            << records.value("procurement_quantity").at(i) << ","
+            << records.value("purchase_quantity").at(i) << ","
+            << records.value("sale_quantity").at(i) << ","
+            << records.value("lost_sale_quantity").at(i) << "\n";
     }
 }
 
 int main(int argc, char *argv[])
 {
+    QCoreApplication app(argc, argv);
+    QCoreApplication::setApplicationName("ChainSim");
+    QCoreApplication::setApplicationVersion("0.2");
+
     try
     {
-        argparse::ArgumentParser parser("ChainSim", "0.2");
-        qz::parse_command_line_args(parser, argc, argv);
+        QCommandLineParser parser;
+        qz::parse_command_line_args(parser, app);
+
+        // Check if server mode is requested
+        if (parser.isSet("server"))
+        {
+            qz::ChainSimServer server;
+            if (!server.start(47761))
+            {
+                return 1;
+            }
+            return app.exec();
+        }
 
         // Get simulation parameters
-        auto log_level = parser.get<unsigned>("log_level");
-        auto simulation_length = parser.get<uint64_t>("simulation_length");
-        auto lead_time = parser.get<uint64_t>("average_lead_time");
-        auto demand = parser.get<double>("average_demand");
-        auto starting_inventory = parser.get<uint64_t>("starting_inventory");
-        auto policy_name = parser.get<std::string>("policy");
-        auto output_file = parser.get<std::string>("output_file");
+        auto log_level = parser.value("log_level").toUInt();
+        auto simulation_length = parser.value("simulation_length").toULongLong();
+        auto lead_time = parser.value("average_lead_time").toULongLong();
+        auto demand = parser.value("average_demand").toDouble();
+        auto starting_inventory = parser.value("starting_inventory").toULongLong();
+        auto policy_name = parser.value("policy");
+        auto output_file = parser.value("output_file");
 
         // Create appropriate policy
         auto policy = create_policy(policy_name, lead_time, demand, parser);
@@ -144,28 +198,29 @@ int main(int argc, char *argv[])
         print_simulation_config(parser, *policy);
 
         // Create and configure simulation
-        qz::ChainSim chainSimulator = (qz::ChainSimBuilder("ChainSim")
-                                           .simulation_length(simulation_length)
-                                           .lead_time(lead_time)
-                                           .average_demand(demand)
-                                           .starting_inventory(starting_inventory)
-                                           .logging_level(log_level)
-                                           .build());
+        auto chainSimulator = qz::ChainSimBuilder()
+                                  .setSimulationName("ChainSim")
+                                  .setSimulationLength(simulation_length)
+                                  .setLeadTime(lead_time)
+                                  .setAverageDemand(demand)
+                                  .setStartingInventory(starting_inventory)
+                                  .setLoggingLevel(log_level)
+                                  .create();
 
-        chainSimulator.initialize_simulation();
+        chainSimulator->initialize_simulation();
 
         // Run simulation
-        chainSimulator.simulate(*policy);
+        chainSimulator->simulate(*policy);
 
         // Get and save results
-        auto simulation_records = chainSimulator.get_simulation_records();
+        auto simulation_records = chainSimulator->get_simulation_records();
         save_results(simulation_records, output_file);
 
         return 0;
     }
     catch (const std::exception &e)
     {
-        std::cerr << "Error: " << e.what() << std::endl;
+        qCritical() << "Error:" << e.what();
         return 1;
     }
 }
