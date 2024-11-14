@@ -27,6 +27,7 @@ add_executable(ChainSimQServe
   purchase_policies/PurchaseEOQ.h purchase_policies/PurchaseEOQ.cpp
   utils/ChainLogger.hpp
   utils/CLI.hpp
+  utils/DemandSampler.hpp
 )
 
 target_link_libraries(ChainSimQServe PRIVATE
