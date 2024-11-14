@@ -34,6 +34,7 @@ import {
     Tooltip,
     Legend,
     ResponsiveContainer,
+    ReferenceArea,
 } from 'recharts';
 import '@fontsource/ubuntu/700.css';
 import '@fontsource/roboto/400.css';
@@ -51,6 +52,10 @@ import { InlineMath, BlockMath } from 'react-katex';
 import { alpha } from '@mui/material/styles';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoadingButton from '@mui/lab/LoadingButton';
+import { PolicySelector } from '@/components/PolicySelector';
+import { ZoomableChart } from '@/components/ZoomableChart';
+import { SimulationConfig, ValidationErrors, SimulationResult } from '@/types';
+import confetti from 'canvas-confetti';
 
 interface SimulationConfig {
     simulation_length: number;
@@ -90,10 +95,13 @@ interface TabPanelProps {
 
 function TabPanel(props: TabPanelProps) {
     const { children, value, index, ...other } = props;
+
     return (
         <div
             role="tabpanel"
             hidden={value !== index}
+            id={`simple-tabpanel-${index}`}
+            aria-labelledby={`simple-tab-${index}`}
             {...other}
         >
             {value === index && (
@@ -125,7 +133,13 @@ const customTheme = (mode: 'light' | 'dark') => createTheme({
                         ? '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
                         : '0 4px 6px -1px rgb(255 255 255 / 0.1), 0 2px 4px -2px rgb(255 255 255 / 0.1)',
                     transition: 'all 0.3s ease',
-                    border: `1px solid ${mode === 'light' ? '#e2e8f0' : '#2d3748'}`,
+                    border: `2px solid ${mode === 'light' ? '#e2e8f0' : '#2d3748'}`,
+                    '&.major-card': {
+                        border: `3px solid ${mode === 'light' ? '#cbd5e1' : '#4a5568'}`,
+                        boxShadow: mode === 'light'
+                            ? '0 10px 15px -3px rgb(0 0 0 / 0.15), 0 4px 6px -4px rgb(0 0 0 / 0.15)'
+                            : '0 10px 15px -3px rgb(255 255 255 / 0.15), 0 4px 6px -4px rgb(255 255 255 / 0.15)',
+                    },
                     '&:hover': {
                         transform: 'translateY(-2px)',
                         boxShadow: mode === 'light'
@@ -175,6 +189,52 @@ const SimulationLoadingOverlay = ({ isVisible }: { isVisible: boolean }) => (
                     </Typography>
                     <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
                         Crunching numbers and analyzing patterns
+                    </Typography>
+                </motion.div>
+            </motion.div>
+        )}
+    </AnimatePresence>
+);
+
+const ThankYouModal = ({ isVisible, onClose }: { isVisible: boolean; onClose: () => void }) => (
+    <AnimatePresence>
+        {isVisible && (
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 9999,
+                }}
+            >
+                <motion.div
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.5, opacity: 0 }}
+                    style={{
+                        backgroundColor: 'white',
+                        padding: '2rem',
+                        borderRadius: '1rem',
+                        textAlign: 'center',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        maxWidth: '90%',
+                        width: '400px',
+                    }}
+                >
+                    <Typography variant="h4" component="h2" sx={{ mb: 2, color: 'primary.main' }}>
+                        Thank You! 🎉
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                        We're glad you're enjoying ChainSim!
                     </Typography>
                 </motion.div>
             </motion.div>
@@ -369,9 +429,10 @@ function StatisticCard({ statistic }: { statistic: StatisticMetadata }) {
 }
 
 // Add this component for distribution-specific parameters
-function DemandDistributionParams({ config, handleInputChange }: {
+function DemandDistributionParams({ config, handleInputChange, validationErrors }: {
     config: SimulationConfig;
     handleInputChange: (field: keyof SimulationConfig) => (event: React.ChangeEvent<HTMLInputElement>) => void;
+    validationErrors: ValidationErrors;
 }) {
     switch (config.demand_distribution) {
         case 'normal':
@@ -384,7 +445,9 @@ function DemandDistributionParams({ config, handleInputChange }: {
                             type="number"
                             value={config.average_demand}
                             onChange={handleInputChange('average_demand')}
-                            helperText="Mean of the normal distribution"
+                            error={!!validationErrors.average_demand}
+                            helperText={validationErrors.average_demand || "Mean of the normal distribution"}
+                            required
                         />
                     </Grid>
                     <Grid item xs={12} sm={6}>
@@ -394,7 +457,9 @@ function DemandDistributionParams({ config, handleInputChange }: {
                             type="number"
                             value={config.std_demand}
                             onChange={handleInputChange('std_demand')}
-                            helperText="Standard deviation of the normal distribution"
+                            error={!!validationErrors.std_demand}
+                            helperText={validationErrors.std_demand || "Standard deviation of the normal distribution"}
+                            required
                         />
                     </Grid>
                 </>
@@ -480,6 +545,102 @@ function DemandDistributionParams({ config, handleInputChange }: {
     }
 }
 
+// Add proper type for zoomState
+interface ZoomState {
+    left: number | 'dataMin';
+    right: number | 'dataMax';
+    refAreaLeft: string | number;
+    refAreaRight: string | number;
+    top: number | 'dataMax+1';
+    bottom: number | 'dataMin-1';
+    animation: boolean;
+}
+
+// Add these interfaces after the existing interfaces
+interface ValidationErrors {
+    simulation_length?: string;
+    average_lead_time?: string;
+    average_demand?: string;
+    std_demand?: string;
+    starting_inventory?: string;
+    minimum_lot_size?: string;
+    ordering_cost?: string;
+    holding_cost?: string;
+    purchase_period?: string;
+    gamma_shape?: string;
+    gamma_scale?: string;
+    uniform_min?: string;
+    uniform_max?: string;
+    seed?: string;
+}
+
+// Add these validation functions before the Home component
+const validateNumber = (value: number | undefined, fieldName: string, min = 0): string | undefined => {
+    if (value === undefined || value === null) {
+        return `${fieldName} is required`;
+    }
+    if (isNaN(Number(value))) {
+        return `${fieldName} must be a number`;
+    }
+    if (Number(value) < min) {
+        return `${fieldName} must be greater than ${min}`;
+    }
+    return undefined;
+};
+
+const validateConfig = (config: SimulationConfig): ValidationErrors => {
+    const errors: ValidationErrors = {};
+
+    // Basic validations
+    errors.simulation_length = validateNumber(config.simulation_length, 'Simulation length', 1);
+    errors.average_lead_time = validateNumber(config.average_lead_time, 'Average lead time', 0);
+    errors.starting_inventory = validateNumber(config.starting_inventory, 'Starting inventory', 0);
+    errors.minimum_lot_size = validateNumber(config.minimum_lot_size, 'Minimum lot size', 1);
+
+    // Distribution-specific validations
+    switch (config.demand_distribution) {
+        case 'normal':
+            errors.average_demand = validateNumber(config.average_demand, 'Average demand', 0);
+            errors.std_demand = validateNumber(config.std_demand, 'Standard deviation of demand', 0);
+            break;
+        case 'gamma':
+            errors.gamma_shape = validateNumber(config.gamma_shape, 'Shape parameter', 0);
+            errors.gamma_scale = validateNumber(config.gamma_scale, 'Scale parameter', 0);
+            break;
+        case 'uniform':
+            errors.uniform_min = validateNumber(config.uniform_min, 'Minimum demand', 0);
+            errors.uniform_max = validateNumber(config.uniform_max, 'Maximum demand');
+            if (config.uniform_max && config.uniform_min && config.uniform_max <= config.uniform_min) {
+                errors.uniform_max = 'Maximum demand must be greater than minimum demand';
+            }
+            break;
+        case 'poisson':
+        case 'fixed':
+            errors.average_demand = validateNumber(config.average_demand, 'Average demand', 0);
+            break;
+    }
+
+    // Policy-specific validations
+    if (config.policy === 'EOQ') {
+        errors.ordering_cost = validateNumber(config.ordering_cost, 'Ordering cost', 0);
+        errors.holding_cost = validateNumber(config.holding_cost, 'Holding cost rate', 0);
+    }
+    if (config.policy === 'TPOP') {
+        errors.purchase_period = validateNumber(config.purchase_period, 'Purchase period', 1);
+    }
+
+    return errors;
+};
+
+// Add this function before the Home component
+const throwConfetti = () => {
+    confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+    });
+};
+
 export default function Home() {
     const [config, setConfig] = useState<SimulationConfig>({
         simulation_length: 30,
@@ -504,16 +665,48 @@ export default function Home() {
     const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
     const resultsRef = useRef<HTMLDivElement>(null);
 
+    const [zoomState, setZoomState] = useState<ZoomState>({
+        left: 'dataMin',
+        right: 'dataMax',
+        refAreaLeft: '',
+        refAreaRight: '',
+        top: 'dataMax+1',
+        bottom: 'dataMin-1',
+        animation: true,
+    });
+
+    // Add validation state
+    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+
+    const [showThankYou, setShowThankYou] = useState(false);
+
     const handleInputChange = (field: keyof SimulationConfig) => (
         event: React.ChangeEvent<HTMLInputElement>
     ) => {
-        setConfig({
+        const value = event.target.value;
+        const newConfig = {
             ...config,
-            [field]: event.target.value,
-        });
+            [field]: value === '' ? undefined :
+                (field === 'policy' ? value : Number(value))
+        };
+        setConfig(newConfig);
+
+        // Validate the new value
+        const newErrors = validateConfig(newConfig);
+        setValidationErrors(newErrors);
     };
 
     const runSimulation = async (customConfig?: SimulationConfig) => {
+        const configToValidate = customConfig || config;
+        const errors = validateConfig(configToValidate);
+        const hasErrors = Object.values(errors).some(error => error !== undefined);
+
+        if (hasErrors) {
+            setValidationErrors(errors);
+            setError('Please fix the validation errors before running the simulation.');
+            return;
+        }
+
         setShowLoadingOverlay(true);
         setLoading(true);
         setError(null);
@@ -661,6 +854,45 @@ export default function Home() {
         document.body.removeChild(link);
     };
 
+    const handleZoom = (direction: 'in' | 'out') => {
+        if (direction === 'out') {
+            setZoomState(prev => ({
+                ...prev,
+                left: 'dataMin',
+                right: 'dataMax',
+                top: 'dataMax+1',
+                bottom: 'dataMin-1',
+            }));
+        }
+    };
+
+    const handleChartMouseDown = (e: any) => {
+        if (e && e.activeLabel) {
+            setZoomState(prev => ({ ...prev, refAreaLeft: e.activeLabel }));
+        }
+    };
+
+    const handleChartMouseMove = (e: any) => {
+        if (zoomState.refAreaLeft && e && e.activeLabel) {
+            setZoomState(prev => ({ ...prev, refAreaRight: e.activeLabel }));
+        }
+    };
+
+    const handleChartMouseUp = () => {
+        if (zoomState.refAreaLeft && zoomState.refAreaRight) {
+            const left = Math.min(Number(zoomState.refAreaLeft), Number(zoomState.refAreaRight));
+            const right = Math.max(Number(zoomState.refAreaLeft), Number(zoomState.refAreaRight));
+
+            setZoomState(prev => ({
+                ...prev,
+                refAreaLeft: '',
+                refAreaRight: '',
+                left,
+                right,
+            }));
+        }
+    };
+
     return (
         <ThemeProvider theme={customTheme(darkMode ? 'dark' : 'light')}>
             <Box sx={{
@@ -670,6 +902,10 @@ export default function Home() {
                 transition: 'all 0.3s ease',
             }}>
                 <SimulationLoadingOverlay isVisible={showLoadingOverlay} />
+                <ThankYouModal
+                    isVisible={showThankYou}
+                    onClose={() => setShowThankYou(false)}
+                />
                 <Head>
                     <title>ChainSim - Supply Chain Simulator</title>
                     <meta name="description" content="Supply Chain Simulation Tool" />
@@ -730,7 +966,7 @@ export default function Home() {
                     </Card>
 
                     {/* Configuration Form */}
-                    <Card sx={{
+                    <Card className="major-card" sx={{
                         mb: 4,
                         position: 'relative',
                         '&::before': {
@@ -751,14 +987,25 @@ export default function Home() {
                             </Typography>
                             <Grid container spacing={3}>
                                 <Grid item xs={12} sm={6}>
+                                    <PolicySelector
+                                        value={config.policy}
+                                        onChange={handleInputChange('policy')}
+                                    />
+                                </Grid>
+
+                                <Grid item xs={12} sm={6}>
                                     <TextField
                                         fullWidth
                                         label="Simulation Length (days)"
                                         type="number"
                                         value={config.simulation_length}
                                         onChange={handleInputChange('simulation_length')}
+                                        error={!!validationErrors.simulation_length}
+                                        helperText={validationErrors.simulation_length}
+                                        required
                                     />
                                 </Grid>
+
                                 <Grid item xs={12} sm={6}>
                                     <TextField
                                         fullWidth
@@ -766,26 +1013,12 @@ export default function Home() {
                                         type="number"
                                         value={config.average_lead_time}
                                         onChange={handleInputChange('average_lead_time')}
+                                        error={!!validationErrors.average_lead_time}
+                                        helperText={validationErrors.average_lead_time}
+                                        required
                                     />
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <TextField
-                                        fullWidth
-                                        label="Average Demand"
-                                        type="number"
-                                        value={config.average_demand}
-                                        onChange={handleInputChange('average_demand')}
-                                    />
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <TextField
-                                        fullWidth
-                                        label="Standard Deviation of Demand"
-                                        type="number"
-                                        value={config.std_demand}
-                                        onChange={handleInputChange('std_demand')}
-                                    />
-                                </Grid>
+
                                 <Grid item xs={12} sm={6}>
                                     <TextField
                                         fullWidth
@@ -793,6 +1026,9 @@ export default function Home() {
                                         type="number"
                                         value={config.seed}
                                         onChange={handleInputChange('seed')}
+                                        error={!!validationErrors.seed}
+                                        helperText={validationErrors.seed}
+                                        required
                                     />
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
@@ -802,6 +1038,9 @@ export default function Home() {
                                         type="number"
                                         value={config.minimum_lot_size}
                                         onChange={handleInputChange('minimum_lot_size')}
+                                        error={!!validationErrors.minimum_lot_size}
+                                        helperText={validationErrors.minimum_lot_size}
+                                        required
                                     />
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
@@ -811,6 +1050,9 @@ export default function Home() {
                                         type="number"
                                         value={config.starting_inventory}
                                         onChange={handleInputChange('starting_inventory')}
+                                        error={!!validationErrors.starting_inventory}
+                                        helperText={validationErrors.starting_inventory}
+                                        required
                                     />
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
@@ -827,19 +1069,6 @@ export default function Home() {
                                         label="Deterministic Mode"
                                     />
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <TextField
-                                        fullWidth
-                                        select
-                                        label="Policy"
-                                        value={config.policy}
-                                        onChange={handleInputChange('policy')}
-                                    >
-                                        <MenuItem value="ROP">ROP</MenuItem>
-                                        <MenuItem value="EOQ">EOQ</MenuItem>
-                                        <MenuItem value="TPOP">TPOP</MenuItem>
-                                    </TextField>
-                                </Grid>
 
                                 {/* Policy-specific fields */}
                                 {config.policy === 'EOQ' && (
@@ -851,6 +1080,9 @@ export default function Home() {
                                                 type="number"
                                                 value={config.ordering_cost}
                                                 onChange={handleInputChange('ordering_cost')}
+                                                error={!!validationErrors.ordering_cost}
+                                                helperText={validationErrors.ordering_cost}
+                                                required
                                             />
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
@@ -860,6 +1092,9 @@ export default function Home() {
                                                 type="number"
                                                 value={config.holding_cost}
                                                 onChange={handleInputChange('holding_cost')}
+                                                error={!!validationErrors.holding_cost}
+                                                helperText={validationErrors.holding_cost}
+                                                required
                                             />
                                         </Grid>
                                     </>
@@ -873,6 +1108,9 @@ export default function Home() {
                                             type="number"
                                             value={config.purchase_period}
                                             onChange={handleInputChange('purchase_period')}
+                                            error={!!validationErrors.purchase_period}
+                                            helperText={validationErrors.purchase_period}
+                                            required
                                         />
                                     </Grid>
                                 )}
@@ -895,7 +1133,10 @@ export default function Home() {
                                         select
                                         label="Demand Distribution"
                                         value={config.demand_distribution}
-                                        onChange={handleInputChange('demand_distribution')}
+                                        onChange={(e) => setConfig({
+                                            ...config,
+                                            demand_distribution: e.target.value as SimulationConfig['demand_distribution']
+                                        })}
                                         helperText="Select the probability distribution for demand"
                                     >
                                         <MenuItem value="fixed">Fixed (Constant)</MenuItem>
@@ -909,6 +1150,7 @@ export default function Home() {
                                 <DemandDistributionParams
                                     config={config}
                                     handleInputChange={handleInputChange}
+                                    validationErrors={validationErrors}
                                 />
 
                                 <Grid item xs={12}>
@@ -926,12 +1168,17 @@ export default function Home() {
                                         </Button>
                                         <Button
                                             variant="outlined"
-                                            color="primary"
-                                            onClick={runSimulation}
-                                            disabled={loading}
-                                            startIcon={<ArticleIcon />}
+                                            color="secondary"
+                                            onClick={() => {
+                                                throwConfetti();
+                                                setShowThankYou(true);
+                                                setTimeout(() => {
+                                                    setShowThankYou(false);
+                                                }, 2000);
+                                            }}
+                                            startIcon={<span role="img" aria-label="party">🎉</span>}
                                         >
-                                            Generate Logs
+                                            Is this cool?
                                         </Button>
                                     </Box>
                                 </Grid>
@@ -966,7 +1213,7 @@ export default function Home() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.5 }}
                             >
-                                <Card sx={{ mb: 4, p: 2 }}>
+                                <Card className="major-card" sx={{ mb: 4, p: 2 }}>
                                     <CardContent sx={{ p: 3 }}>
                                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                                             <Typography variant="h5">
@@ -996,111 +1243,87 @@ export default function Home() {
                                         </Box>
 
                                         <TabPanel value={tabValue} index={0}>
-                                            <ResponsiveContainer width="100%" height={400}>
-                                                <LineChart data={getPlotData()}>
-                                                    <CartesianGrid strokeDasharray="3 3" />
-                                                    <XAxis dataKey="day" />
-                                                    <YAxis />
-                                                    <Tooltip />
-                                                    <Legend />
-                                                    <Line
-                                                        type="monotone"
-                                                        dataKey="inventory"
-                                                        stroke="#8884d8"
-                                                        activeDot={{ r: 8 }}
-                                                    />
-                                                </LineChart>
-                                            </ResponsiveContainer>
+                                            <ZoomableChart
+                                                data={getPlotData()}
+                                                series={[
+                                                    { key: 'inventory', color: '#8884d8' },
+                                                    { key: 'demand', color: '#82ca9d' },
+                                                    // ... other series
+                                                ]}
+                                                zoomState={zoomState}
+                                                onChartMouseDown={handleChartMouseDown}
+                                                onChartMouseMove={handleChartMouseMove}
+                                                onChartMouseUp={handleChartMouseUp}
+                                            />
                                         </TabPanel>
 
                                         <TabPanel value={tabValue} index={1}>
-                                            <ResponsiveContainer width="100%" height={400}>
-                                                <LineChart data={getPlotData()}>
-                                                    <CartesianGrid strokeDasharray="3 3" />
-                                                    <XAxis dataKey="day" />
-                                                    <YAxis />
-                                                    <Tooltip />
-                                                    <Legend />
-                                                    <Line
-                                                        type="monotone"
-                                                        dataKey="demand"
-                                                        stroke="#82ca9d"
-                                                        activeDot={{ r: 8 }}
-                                                    />
-                                                    <Line
-                                                        type="monotone"
-                                                        dataKey="sales"
-                                                        stroke="#ffc658"
-                                                        activeDot={{ r: 8 }}
-                                                    />
-                                                </LineChart>
-                                            </ResponsiveContainer>
+                                            <ZoomableChart
+                                                data={getPlotData()}
+                                                series={[
+                                                    { key: 'demand', color: '#82ca9d' },
+                                                    { key: 'sales', color: '#ffc658' },
+                                                    // ... other series
+                                                ]}
+                                                zoomState={zoomState}
+                                                onChartMouseDown={handleChartMouseDown}
+                                                onChartMouseMove={handleChartMouseMove}
+                                                onChartMouseUp={handleChartMouseUp}
+                                            />
                                         </TabPanel>
 
                                         <TabPanel value={tabValue} index={2}>
-                                            <ResponsiveContainer width="100%" height={400}>
-                                                <LineChart data={getPlotData()}>
-                                                    <CartesianGrid strokeDasharray="3 3" />
-                                                    <XAxis dataKey="day" />
-                                                    <YAxis />
-                                                    <Tooltip />
-                                                    <Legend />
-                                                    <Line
-                                                        type="monotone"
-                                                        dataKey="procurement"
-                                                        stroke="#ff7300"
-                                                        activeDot={{ r: 8 }}
-                                                    />
-                                                    <Line
-                                                        type="monotone"
-                                                        dataKey="purchase"
-                                                        stroke="#ff0000"
-                                                        activeDot={{ r: 8 }}
-                                                    />
-                                                </LineChart>
-                                            </ResponsiveContainer>
+                                            <ZoomableChart
+                                                data={getPlotData()}
+                                                series={[
+                                                    { key: 'procurement', color: '#ff7300' },
+                                                    { key: 'purchase', color: '#ff0000' },
+                                                    // ... other series
+                                                ]}
+                                                zoomState={zoomState}
+                                                onChartMouseDown={handleChartMouseDown}
+                                                onChartMouseMove={handleChartMouseMove}
+                                                onChartMouseUp={handleChartMouseUp}
+                                            />
                                         </TabPanel>
 
                                         <TabPanel value={tabValue} index={3}>
-                                            <ResponsiveContainer width="100%" height={400}>
-                                                <LineChart data={getPlotData()}>
-                                                    <CartesianGrid strokeDasharray="3 3" />
-                                                    <XAxis dataKey="day" />
-                                                    <YAxis />
-                                                    <Tooltip />
-                                                    <Legend />
-                                                    <Line
-                                                        type="monotone"
-                                                        dataKey="lostSales"
-                                                        stroke="#ff0000"
-                                                        activeDot={{ r: 8 }}
-                                                    />
-                                                </LineChart>
-                                            </ResponsiveContainer>
+                                            <ZoomableChart
+                                                data={getPlotData()}
+                                                series={[
+                                                    { key: 'lostSales', color: '#ff0000' },
+                                                    // ... other series
+                                                ]}
+                                                zoomState={zoomState}
+                                                onChartMouseDown={handleChartMouseDown}
+                                                onChartMouseMove={handleChartMouseMove}
+                                                onChartMouseUp={handleChartMouseUp}
+                                            />
                                         </TabPanel>
 
                                         <TabPanel value={tabValue} index={4}>
-                                            <ResponsiveContainer width="100%" height={400}>
-                                                <LineChart data={getPlotData()}>
-                                                    <CartesianGrid strokeDasharray="3 3" />
-                                                    <XAxis dataKey="day" />
-                                                    <YAxis />
-                                                    <Tooltip />
-                                                    <Legend />
-                                                    <Line type="monotone" dataKey="inventory" stroke="#8884d8" />
-                                                    <Line type="monotone" dataKey="demand" stroke="#82ca9d" />
-                                                    <Line type="monotone" dataKey="procurement" stroke="#ff7300" />
-                                                    <Line type="monotone" dataKey="purchase" stroke="#ff0000" />
-                                                    <Line type="monotone" dataKey="sales" stroke="#ffc658" />
-                                                    <Line type="monotone" dataKey="lostSales" stroke="#ff0000" />
-                                                </LineChart>
-                                            </ResponsiveContainer>
+                                            <ZoomableChart
+                                                data={getPlotData()}
+                                                series={[
+                                                    { key: 'inventory', color: '#8884d8' },
+                                                    { key: 'demand', color: '#82ca9d' },
+                                                    { key: 'procurement', color: '#ff7300' },
+                                                    { key: 'purchase', color: '#ff0000' },
+                                                    { key: 'sales', color: '#ffc658' },
+                                                    { key: 'lostSales', color: '#ff0000' },
+                                                    // ... other series
+                                                ]}
+                                                zoomState={zoomState}
+                                                onChartMouseDown={handleChartMouseDown}
+                                                onChartMouseMove={handleChartMouseMove}
+                                                onChartMouseUp={handleChartMouseUp}
+                                            />
                                         </TabPanel>
                                     </CardContent>
                                 </Card>
 
                                 {/* Analysis section - place this right after the graphs card */}
-                                <Card sx={{ mb: 4 }}>
+                                <Card className="major-card" sx={{ mb: 4 }}>
                                     <CardContent>
                                         <Typography variant="h5" gutterBottom>
                                             Simulation Analysis Report
@@ -1129,7 +1352,7 @@ export default function Home() {
                                 </Card>
 
                                 {/* Existing table view */}
-                                <Card>
+                                <Card className="major-card">
                                     <CardContent>
                                         <Typography variant="h5" gutterBottom>
                                             Detailed Results Table
