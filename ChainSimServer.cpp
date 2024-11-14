@@ -167,8 +167,11 @@ namespace qz
         auto simulation_length = params.queryItemValue("simulation_length").toULongLong();
         auto lead_time = params.queryItemValue("average_lead_time").toULongLong();
         auto demand = params.queryItemValue("average_demand").toDouble();
+        auto std_demand = params.queryItemValue("std_demand").toDouble();
         auto starting_inventory = params.queryItemValue("starting_inventory").toULongLong();
         auto output_file = params.queryItemValue("output_file");
+        auto seed = params.queryItemValue("seed").toUInt();
+        bool deterministic = params.hasQueryItem("deterministic");
 
         // Create policy
         auto policy = createPolicy(params);
@@ -179,6 +182,9 @@ namespace qz
                                   .setSimulationLength(simulation_length)
                                   .setLeadTime(lead_time)
                                   .setAverageDemand(demand)
+                                  .setDemandStdDev(std_demand)
+                                  .setDeterministic(deterministic)
+                                  .setSeed(seed)
                                   .setStartingInventory(starting_inventory)
                                   .setLoggingLevel(log_level)
                                   .create();
@@ -269,6 +275,7 @@ namespace qz
             "simulation_length",
             "average_lead_time",
             "average_demand",
+            "std_demand",
             "policy"};
 
         for (const auto &param : required)
