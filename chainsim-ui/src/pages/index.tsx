@@ -935,7 +935,16 @@ export default function Home() {
                     </Typography>
 
                     {/* Description */}
-                    <Card sx={{ mb: 4 }}>
+                    <Card sx={{
+                        mb: 4,
+                        border: theme => `2px solid ${theme.palette.mode === 'dark' ? '#333' : '#e0e0e0'}`,
+                        borderRadius: 2,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                            transform: 'translateY(-2px)',
+                            boxShadow: theme => theme.palette.mode === 'dark' ? '0 8px 16px rgba(0,0,0,0.4)' : '0 8px 16px rgba(0,0,0,0.1)',
+                        }
+                    }}>
                         <CardContent>
                             <Typography variant="h5" gutterBottom>
                                 About ChainSim
@@ -1204,7 +1213,6 @@ export default function Home() {
                             {error}
                         </Alert>
                     )}
-
                     {/* Add ref to results section */}
                     <div ref={resultsRef}>
                         {result && (
