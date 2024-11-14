@@ -162,36 +162,71 @@ namespace qz
     {
         validateParameters(params);
 
-        // Extract parameters
+        // Extract common parameters
         auto log_level = params.queryItemValue("log_level").toUInt();
         auto simulation_length = params.queryItemValue("simulation_length").toULongLong();
         auto lead_time = params.queryItemValue("average_lead_time").toULongLong();
-        auto demand = params.queryItemValue("average_demand").toDouble();
-        auto std_demand = params.queryItemValue("std_demand").toDouble();
         auto starting_inventory = params.queryItemValue("starting_inventory").toULongLong();
-        auto output_file = params.queryItemValue("output_file");
         auto seed = params.queryItemValue("seed").toUInt();
         bool deterministic = params.hasQueryItem("deterministic");
+        QString output_file = params.queryItemValue("output_file");
 
-        // Create policy
-        auto policy = createPolicy(params);
+        // Get demand distribution and its parameters
+        QString distribution = params.queryItemValue("demand_distribution");
 
-        // Create and configure simulation
-        auto chainSimulator = ChainSimBuilder()
-                                  .setSimulationName("ChainSim")
-                                  .setSimulationLength(simulation_length)
-                                  .setLeadTime(lead_time)
-                                  .setAverageDemand(demand)
-                                  .setDemandStdDev(std_demand)
-                                  .setDeterministic(deterministic)
-                                  .setSeed(seed)
-                                  .setStartingInventory(starting_inventory)
-                                  .setLoggingLevel(log_level)
-                                  .create();
+        // Create builder and maintain reference
+        ChainSimBuilder &builder = *(new ChainSimBuilder());
+        builder.setSimulationName("ChainSim")
+            .setSimulationLength(simulation_length)
+            .setLeadTime(lead_time)
+            .setDemandDistribution(distribution)
+            .setDeterministic(deterministic)
+            .setSeed(seed)
+            .setStartingInventory(starting_inventory)
+            .setLoggingLevel(log_level);
+
+        // Configure distribution-specific parameters
+        if (distribution == "normal")
+        {
+            auto demand = params.queryItemValue("average_demand").toDouble();
+            auto std_demand = params.queryItemValue("std_demand").toDouble();
+            builder.setAverageDemand(demand)
+                .setDemandStdDev(std_demand);
+        }
+        else if (distribution == "gamma")
+        {
+            auto shape = params.queryItemValue("gamma_shape").toDouble();
+            auto scale = params.queryItemValue("gamma_scale").toDouble();
+            builder.setGammaParameters(shape, scale);
+        }
+        else if (distribution == "poisson")
+        {
+            auto demand = params.queryItemValue("average_demand").toDouble();
+            builder.setAverageDemand(demand);
+        }
+        else if (distribution == "uniform")
+        {
+            auto min = params.queryItemValue("uniform_min").toDouble();
+            auto max = params.queryItemValue("uniform_max").toDouble();
+            builder.setUniformParameters(min, max);
+        }
+        else if (distribution == "fixed")
+        {
+            auto demand = params.queryItemValue("average_demand").toDouble();
+            builder.setAverageDemand(demand)
+                .setDeterministic(true);
+        }
+
+        // Create and run simulation
+        auto chainSimulator = builder.create();
+        delete &builder; // Clean up the builder
 
         chainSimulator->initialize_simulation();
 
-        // Run simulation
+        // Create policy before simulation
+        auto policy = createPolicy(params);
+
+        // Run simulation with policy
         chainSimulator->simulate(*policy);
 
         // Get results
@@ -219,6 +254,7 @@ namespace qz
                         << simulation_records["sale_quantity"][i] << ","
                         << simulation_records["lost_sale_quantity"][i] << "\n";
                 }
+                file.close();
             }
         }
 
@@ -300,6 +336,42 @@ namespace qz
             if (!params.hasQueryItem("purchase_period"))
             {
                 throw std::invalid_argument("TPOP policy requires purchase_period parameter");
+            }
+        }
+
+        // Add validation for demand distribution parameters
+        QString distribution = params.queryItemValue("demand_distribution");
+        if (distribution.isEmpty())
+        {
+            throw std::invalid_argument("Missing demand_distribution parameter");
+        }
+
+        if (distribution == "normal")
+        {
+            if (!params.hasQueryItem("average_demand") || !params.hasQueryItem("std_demand"))
+            {
+                throw std::invalid_argument("Normal distribution requires average_demand and std_demand parameters");
+            }
+        }
+        else if (distribution == "gamma")
+        {
+            if (!params.hasQueryItem("gamma_shape") || !params.hasQueryItem("gamma_scale"))
+            {
+                throw std::invalid_argument("Gamma distribution requires shape and scale parameters");
+            }
+        }
+        else if (distribution == "uniform")
+        {
+            if (!params.hasQueryItem("uniform_min") || !params.hasQueryItem("uniform_max"))
+            {
+                throw std::invalid_argument("Uniform distribution requires min and max parameters");
+            }
+        }
+        else if (distribution == "poisson" || distribution == "fixed")
+        {
+            if (!params.hasQueryItem("average_demand"))
+            {
+                throw std::invalid_argument("Distribution requires average_demand parameter");
             }
         }
     }
