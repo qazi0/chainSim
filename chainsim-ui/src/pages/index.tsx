@@ -727,7 +727,8 @@ export default function Home() {
                 }
             });
 
-            const url = `http://localhost:47761/simulate?${queryParams.toString()}`;
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:47761';
+            const url = `${apiUrl}/simulate?${queryParams.toString()}`;
             console.log('Sending request to:', url); // Debug log
 
             const response = await fetch(url, {
