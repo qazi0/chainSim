@@ -33,6 +33,7 @@ namespace qz
         std::unique_ptr<PurchasePolicy> createPolicy(const QUrlQuery &params);
         void validateParameters(const QUrlQuery &params);
         void printRequestDetails(const QUrlQuery &params);
+        bool isAllowedOrigin(const QString &origin);
     };
 
 } // namespace qz
