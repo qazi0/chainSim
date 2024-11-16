@@ -95,8 +95,8 @@ namespace qz
                            return response;
                        });
 
-        // Start listening on localhost with specified port
-        if (!m_tcpServer->listen(QHostAddress::LocalHost, port))
+        // Start listening on all interfaces with specified port
+        if (!m_tcpServer->listen(QHostAddress::AnyIPv4, port))
         {
             m_logger.error(QString("Failed to start TCP server on port %1: %2")
                                .arg(port)
@@ -389,14 +389,29 @@ namespace qz
         {
             // Default allowed origins
             static const QStringList defaultOrigins = {
+                "*",
                 "http://localhost:3000",
                 "http://localhost:47761"};
-            return defaultOrigins.contains(origin);
+            bool allowed = defaultOrigins.contains(origin);
+            if (!allowed)
+            {
+                m_logger.error(QString("Origin '%1' not allowed. Allowed origins: %2")
+                                   .arg(origin)
+                                   .arg(defaultOrigins.join(", ")));
+            }
+            return allowed;
         }
 
         // Parse comma-separated origins from environment
         QStringList allowedOrigins = QString::fromUtf8(allowedOriginsEnv).split(',');
-        return allowedOrigins.contains(origin);
+        bool allowed = allowedOrigins.contains(origin);
+        if (!allowed)
+        {
+            m_logger.error(QString("Origin '%1' not allowed. Allowed origins: %2")
+                               .arg(origin)
+                               .arg(allowedOrigins.join(", ")));
+        }
+        return allowed;
     }
 
 } // namespace qz
