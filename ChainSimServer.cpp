@@ -49,7 +49,9 @@ namespace qz
                                // Create response with CORS headers
                                auto response = QHttpServerResponse(result);
                                QHttpHeaders headers = response.headers();
-                               headers.append("Access-Control-Allow-Origin", origin.toUtf8());
+                               if (isAllowedOrigin(origin))
+                                   headers.append("Access-Control-Allow-Origin", origin);
+
                                headers.append("Access-Control-Allow-Methods", "POST, OPTIONS");
                                headers.append("Access-Control-Allow-Headers", "Content-Type, Authorization");
                                response.setHeaders(headers);
@@ -64,7 +66,9 @@ namespace qz
                                // Create error response with CORS headers
                                auto response = QHttpServerResponse(error, QHttpServerResponse::StatusCode::BadRequest);
                                QHttpHeaders headers = response.headers();
-                               headers.append("Access-Control-Allow-Origin", origin.toUtf8());
+                               if (isAllowedOrigin(origin))
+                                   headers.append("Access-Control-Allow-Origin", origin);
+
                                headers.append("Access-Control-Allow-Methods", "POST, OPTIONS");
                                headers.append("Access-Control-Allow-Headers", "Content-Type, Authorization");
                                response.setHeaders(headers);
@@ -74,7 +78,7 @@ namespace qz
 
         // Add OPTIONS route for CORS preflight
         m_server.route("/simulate", QHttpServerRequest::Method::Options,
-                       [](const QHttpServerRequest &request)
+                       [this](const QHttpServerRequest &request)
                        {
                            QString origin = request.value("Origin");
                            if (origin.isEmpty())
@@ -82,15 +86,17 @@ namespace qz
 
                            auto response = QHttpServerResponse(QHttpServerResponse::StatusCode::NoContent);
                            QHttpHeaders headers = response.headers();
-                           headers.append("Access-Control-Allow-Origin", origin.toUtf8());
+                           if (this->isAllowedOrigin(origin))
+                               headers.append("Access-Control-Allow-Origin", origin);
+
                            headers.append("Access-Control-Allow-Methods", "POST, OPTIONS");
                            headers.append("Access-Control-Allow-Headers", "Content-Type, Authorization");
                            response.setHeaders(headers);
                            return response;
                        });
 
-        // Start listening on localhost with specified port
-        if (!m_tcpServer->listen(QHostAddress::LocalHost, port))
+        // Start listening on all interfaces with specified port
+        if (!m_tcpServer->listen(QHostAddress::AnyIPv4, port))
         {
             m_logger.error(QString("Failed to start TCP server on port %1: %2")
                                .arg(port)
@@ -374,6 +380,38 @@ namespace qz
                 throw std::invalid_argument("Distribution requires average_demand parameter");
             }
         }
+    }
+
+    bool ChainSimServer::isAllowedOrigin(const QString &origin)
+    {
+        QByteArray allowedOriginsEnv = qgetenv("ALLOWED_ORIGINS");
+        if (allowedOriginsEnv.isEmpty())
+        {
+            // Default allowed origins
+            static const QStringList defaultOrigins = {
+                "*",
+                "http://localhost:3000",
+                "http://localhost:47761"};
+            bool allowed = defaultOrigins.contains(origin);
+            if (!allowed)
+            {
+                m_logger.error(QString("Origin '%1' not allowed. Allowed origins: %2")
+                                   .arg(origin)
+                                   .arg(defaultOrigins.join(", ")));
+            }
+            return allowed;
+        }
+
+        // Parse comma-separated origins from environment
+        QStringList allowedOrigins = QString::fromUtf8(allowedOriginsEnv).split(',');
+        bool allowed = allowedOrigins.contains(origin);
+        if (!allowed)
+        {
+            m_logger.error(QString("Origin '%1' not allowed. Allowed origins: %2")
+                               .arg(origin)
+                               .arg(allowedOrigins.join(", ")));
+        }
+        return allowed;
     }
 
 } // namespace qz
