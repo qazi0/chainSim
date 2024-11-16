@@ -57,35 +57,35 @@ import { ZoomableChart } from '@/components/ZoomableChart';
 import { SimulationConfig, ValidationErrors, SimulationResult } from '@/types';
 import confetti from 'canvas-confetti';
 
-interface SimulationConfig {
-    simulation_length: number;
-    average_lead_time: number;
-    average_demand: number;
-    std_demand: number;
-    policy: 'ROP' | 'TPOP' | 'EOQ';
-    starting_inventory: number;
-    log_level: number;
-    seed: number;
-    minimum_lot_size: number;
-    ordering_cost?: number;
-    holding_cost?: number;
-    purchase_period?: number;
-    deterministic: boolean;
-    demand_distribution: 'fixed' | 'normal' | 'gamma' | 'poisson' | 'uniform';
-    gamma_shape?: number;
-    gamma_scale?: number;
-    uniform_min?: number;
-    uniform_max?: number;
-}
+// interface SimulationConfig {
+//     simulation_length: number;
+//     average_lead_time: number;
+//     average_demand: number;
+//     std_demand: number;
+//     policy: 'ROP' | 'TPOP' | 'EOQ';
+//     starting_inventory: number;
+//     log_level: number;
+//     seed: number;
+//     minimum_lot_size: number;
+//     ordering_cost?: number;
+//     holding_cost?: number;
+//     purchase_period?: number;
+//     deterministic: boolean;
+//     demand_distribution: 'fixed' | 'normal' | 'gamma' | 'poisson' | 'uniform';
+//     gamma_shape?: number;
+//     gamma_scale?: number;
+//     uniform_min?: number;
+//     uniform_max?: number;
+// }
 
-interface SimulationResult {
-    inventory_quantity: number[];
-    demand_quantity: number[];
-    procurement_quantity: number[];
-    purchase_quantity: number[];
-    sale_quantity: number[];
-    lost_sale_quantity: number[];
-}
+// interface SimulationResult {
+//     inventory_quantity: number[];
+//     demand_quantity: number[];
+//     procurement_quantity: number[];
+//     purchase_quantity: number[];
+//     sale_quantity: number[];
+//     lost_sale_quantity: number[];
+// }
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -557,22 +557,22 @@ interface ZoomState {
 }
 
 // Add these interfaces after the existing interfaces
-interface ValidationErrors {
-    simulation_length?: string;
-    average_lead_time?: string;
-    average_demand?: string;
-    std_demand?: string;
-    starting_inventory?: string;
-    minimum_lot_size?: string;
-    ordering_cost?: string;
-    holding_cost?: string;
-    purchase_period?: string;
-    gamma_shape?: string;
-    gamma_scale?: string;
-    uniform_min?: string;
-    uniform_max?: string;
-    seed?: string;
-}
+// interface ValidationErrors {
+//     simulation_length?: string;
+//     average_lead_time?: string;
+//     average_demand?: string;
+//     std_demand?: string;
+//     starting_inventory?: string;
+//     minimum_lot_size?: string;
+//     ordering_cost?: string;
+//     holding_cost?: string;
+//     purchase_period?: string;
+//     gamma_shape?: string;
+//     gamma_scale?: string;
+//     uniform_min?: string;
+//     uniform_max?: string;
+//     seed?: string;
+// }
 
 // Add these validation functions before the Home component
 const validateNumber = (value: number | undefined, fieldName: string, min = 0): string | undefined => {
@@ -718,61 +718,47 @@ export default function Home() {
             };
             const queryParams = new URLSearchParams();
             Object.entries(configToUse).forEach(([key, value]) => {
-                if (value !== undefined && value !== null) {
-                    if (typeof value === 'boolean') {
-                        if (value) queryParams.append(key, '');
-                    } else {
-                        queryParams.append(key, value.toString());
-                    }
+                if (value !== undefined) {
+                    queryParams.append(key, value.toString());
                 }
             });
 
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:47761';
-            const url = `${apiUrl}/simulate?${queryParams.toString()}`;
-            console.log('Sending request to:', url); // Debug log
+            console.log('Attempting to connect to simulation server...');
+            console.log(`API URL: ${process.env.NEXT_PUBLIC_API_URL}`);
 
-            const response = await fetch(url, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/simulate?${queryParams.toString()}`, {
                 method: 'POST',
                 headers: {
-                    'Accept': 'application/json',
                     'Content-Type': 'application/json',
                 },
-                mode: 'cors', // Enable CORS
-                cache: 'no-cache',
-                credentials: 'same-origin',
             });
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Server response:', response.status, errorText); // Debug log
-                throw new Error(`Server error: ${response.status} - ${errorText}`);
+                console.error('Server response error:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    body: errorText
+                });
+                throw new Error(`Server error: ${response.status} ${response.statusText}\n${errorText}`);
             }
 
-            const data = await response.json();
-            console.log('Received data:', data); // Debug log
-            setResult(data);
-
-            // Add artificial delay for better UX
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            // After simulation completes
-            setShowLoadingOverlay(false);
+            const result = await response.json();
+            setResult(result);
+            setError(null);
 
             // Scroll to results
-            setTimeout(() => {
-                resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 100);
-
-        } catch (err) {
-            console.error('Simulation error:', err); // Debug log
-            if (err instanceof TypeError && err.message === 'Failed to fetch') {
-                setError('Could not connect to the simulation server. Please ensure the server is running on port 47761.');
-            } else {
-                setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+            if (resultsRef.current) {
+                resultsRef.current.scrollIntoView({ behavior: 'smooth' });
             }
+        } catch (err) {
+            console.error('Simulation error:', err);
+            setError(err instanceof Error ?
+                `Error: ${err.message}` :
+                'Could not connect to the simulation server. Please ensure the server is running on port 47761');
         } finally {
-            setLoading(false);
             setShowLoadingOverlay(false);
+            setLoading(false);
         }
     };
 
