@@ -1,10 +1,17 @@
-# ChainSim Supply Chain Simulator
+<p align="center">
+  <img src="chainsim-ui/public/logo-chainsim.png" alt="ChainSim Logo" width="400"/>
+</p>
+
+<h1 align="center">ChainSim Supply Chain Simulator</h1>
 
 A powerful supply chain simulation tool with a modern web interface, combining Qt backend services with a Next.js frontend for comprehensive supply chain analysis and visualization.
 
-## 📸 Screenshots
+## 📸 UI
 
-### Configuration Interface
+### Header
+![Configuration Panel](/res/sim-header.png)
+
+### Configuration Panel
 ![Configuration Panel](/res/config.png)
 Configure your simulation with an intuitive interface. Set inventory policies, demand distributions, and key parameters like lead time, starting inventory, and simulation duration.
 
