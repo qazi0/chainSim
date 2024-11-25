@@ -40,7 +40,6 @@ import '@fontsource/ubuntu/700.css';
 import '@fontsource/roboto/400.css';
 import { createTheme, ThemeProvider, useTheme } from '@mui/material/styles';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ArticleIcon from '@mui/icons-material/Article';
@@ -56,6 +55,7 @@ import { PolicySelector } from '@/components/PolicySelector';
 import { ZoomableChart } from '@/components/ZoomableChart';
 import { SimulationConfig, ValidationErrors, SimulationResult } from '@/types';
 import confetti from 'canvas-confetti';
+import Image from 'next/image';
 
 // interface SimulationConfig {
 //     simulation_length: number;
@@ -117,11 +117,14 @@ const customTheme = (mode: 'light' | 'dark') => createTheme({
     palette: {
         mode,
         primary: {
-            main: mode === 'light' ? '#1976d2' : '#90caf9',
+            main: mode === 'light' ? '#2563eb' : '#60a5fa',
+        },
+        secondary: {
+            main: mode === 'light' ? '#7c3aed' : '#a78bfa',
         },
         background: {
-            default: mode === 'light' ? '#f8fafc' : '#121212',
-            paper: mode === 'light' ? '#ffffff' : '#1e1e1e',
+            default: mode === 'light' ? '#f8fafc' : '#0f172a',
+            paper: mode === 'light' ? '#ffffff' : '#1e293b',
         },
     },
     components: {
@@ -132,13 +135,16 @@ const customTheme = (mode: 'light' | 'dark') => createTheme({
                     boxShadow: mode === 'light'
                         ? '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
                         : '0 4px 6px -1px rgb(255 255 255 / 0.1), 0 2px 4px -2px rgb(255 255 255 / 0.1)',
-                    transition: 'all 0.3s ease',
-                    border: `2px solid ${mode === 'light' ? '#e2e8f0' : '#2d3748'}`,
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    border: `1px solid ${mode === 'light' ? '#e2e8f0' : '#334155'}`,
                     '&.major-card': {
-                        border: `3px solid ${mode === 'light' ? '#cbd5e1' : '#4a5568'}`,
+                        background: mode === 'light'
+                            ? 'linear-gradient(to bottom right, #ffffff, #f8fafc)'
+                            : 'linear-gradient(to bottom right, #1e293b, #0f172a)',
+                        border: `2px solid ${mode === 'light' ? '#cbd5e1' : '#475569'}`,
                         boxShadow: mode === 'light'
-                            ? '0 10px 15px -3px rgb(0 0 0 / 0.15), 0 4px 6px -4px rgb(0 0 0 / 0.15)'
-                            : '0 10px 15px -3px rgb(255 255 255 / 0.15), 0 4px 6px -4px rgb(255 255 255 / 0.15)',
+                            ? '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)'
+                            : '0 10px 15px -3px rgb(255 255 255 / 0.1), 0 4px 6px -4px rgb(255 255 255 / 0.1)',
                     },
                     '&:hover': {
                         transform: 'translateY(-2px)',
@@ -148,6 +154,28 @@ const customTheme = (mode: 'light' | 'dark') => createTheme({
                     },
                 },
             },
+        },
+        MuiButton: {
+            styleOverrides: {
+                root: {
+                    borderRadius: '8px',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    transition: 'all 0.2s ease-in-out',
+                    '&:hover': {
+                        transform: 'translateY(-1px)',
+                    },
+                },
+            },
+        },
+    },
+    typography: {
+        fontFamily: '"Roboto", "Ubuntu", sans-serif',
+        h1: {
+            fontWeight: 700,
+        },
+        h5: {
+            fontWeight: 600,
         },
     },
 });
@@ -660,7 +688,7 @@ export default function Home() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [tabValue, setTabValue] = useState(0);
-    const [darkMode, setDarkMode] = useState(false);
+    const [darkMode, setDarkMode] = useState(true);
     const [generateLogs, setGenerateLogs] = useState(false);
     const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
     const resultsRef = useRef<HTMLDivElement>(null);
@@ -898,28 +926,43 @@ export default function Home() {
                     <meta name="description" content="Supply Chain Simulation Tool" />
                 </Head>
 
-                <IconButton
-                    sx={{ position: 'fixed', right: 20, top: 20, zIndex: 1000 }}
-                    onClick={() => setDarkMode(!darkMode)}
-                    color="inherit"
-                >
-                    {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-                </IconButton>
-
                 <Container maxWidth="lg" sx={{ py: 6 }}>
-                    {/* Header */}
-                    <Typography
-                        variant="h1"
-                        component="h1"
-                        sx={{
-                            fontFamily: 'Ubuntu',
-                            fontSize: '2.5rem',
-                            mb: 2,
-                            textAlign: 'center',
-                        }}
-                    >
-                        ChainSim - The Supply Chain Simulator
-                    </Typography>
+                    {/* Header with Logo */}
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        gap: 2,
+                        mb: 1
+                    }}>
+                        <Image
+                            src="/logo-chainsim.png"
+                            alt="ChainSim Logo"
+                            width={200}
+                            height={80}
+                            style={{
+                                objectFit: 'contain',
+                                marginRight: '1rem'
+                            }}
+                        />
+                        <Typography
+                            variant="h1"
+                            component="h1"
+                            sx={{
+                                fontFamily: 'Ubuntu',
+                                fontSize: { xs: '2rem', sm: '2.5rem' },
+                                textAlign: 'center',
+                                background: theme =>
+                                    `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                fontWeight: 700
+                            }}
+                        >
+                            The Efficient Supply Chain Simulator
+                        </Typography>
+                    </Box>
 
                     {/* Description */}
                     <Card sx={{
