@@ -1,62 +1,42 @@
-
 #ifndef CHAINSIM_CHAINLOGGER_HPP
 #define CHAINSIM_CHAINLOGGER_HPP
 
-#include <iostream>
+#include <QDebug>
+#include <QString>
 
 class ChainLogger
 {
-    unsigned m_logging_level{};
+    quint32 m_logging_level{};
 
 public:
-    explicit ChainLogger(unsigned loggingLevel = 1) : m_logging_level{loggingLevel} {}
+    explicit ChainLogger(quint32 loggingLevel = 1) : m_logging_level{loggingLevel} {}
 
-    template <typename... Args>
-    void info(const Args &...args) const
+    void info(const QString &message) const
     {
         if (m_logging_level < 1)
             return;
-
-        std::cout << "[INFO > ] ";
-        ((std::cout << args), ...);
-
-        std::cout << "\n";
+        qInfo() << "[INFO > ]" << message;
     }
 
-    template <typename... Args>
-    void warn(const Args &...args) const
+    void warn(const QString &message) const
     {
         if (m_logging_level < 1)
             return;
-
-        std::cout << "[WARN ! ] ";
-        ((std::cout << args), ...);
-
-        std::cout << "\n";
+        qWarning() << "[WARN ! ]" << message;
     }
 
-    template <typename... Args>
-    void error(const Args &...args) const
+    void error(const QString &message) const
     {
         if (m_logging_level < 1)
             return;
-
-        std::cout << "[ERROR !!] ";
-        ((std::cout << args), ...);
-
-        std::cout << "\n";
+        qCritical() << "[ERROR !!]" << message;
     }
 
-    template <typename... Args>
-    void debug(const Args &...args)
+    void debug(const QString &message)
     {
         if (m_logging_level < 1)
             return;
-
-        std::cout << "[DEBG > ] ";
-        ((std::cout << args), ...);
-
-        std::cout << "\n";
+        qDebug() << "[DEBG > ]" << message;
     }
 };
 
